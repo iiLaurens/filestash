@@ -6,51 +6,6 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build_frontend:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        persist-credentials: false
-    - uses: actions/setup-node@v3
-      with:
-        node-version: 14.x
-    - name: Setup
-      run: npm install
-    - name: Build
-      run: make build_frontend
-    - uses: actions/upload-artifact@master
-      with:
-        name: build-frontend
-        path: server/ctrl/static/www/
-
-  build_backend:
-    needs: build_frontend
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/download-artifact@master
-      with:
-        name: build-frontend
-        path: server/ctrl/static/www/
-    - uses: actions/setup-go@v3.5.0
-      with:
-        go-version: 1.19
-    - name: Setup
-      run: |
-        mkdir -p ./dist/data/state/config
-        cp config/config.json ./dist/data/state/config/
-    - name: Build
-      run: |
-        make build_init
-        make build_backend
-    - uses: actions/upload-artifact@master
-      with:
-        name: build
-        path: dist
-    - name: Verify
-      run: timeout 5 ./dist/filestash || code=$?; if [[ $code -ne 124 ]]; then exit $code; fi
-
   release_docker_amd64:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
@@ -83,16 +38,3 @@ jobs:
         docker manifest create ilaurens/filestash:latest \
           --amend ilaurens/filestash:latest-amd64
         docker manifest push ilaurens/filestash:latest
-
-  deploy:
-    if: github.ref == 'refs/heads/master'
-    needs: release_docker
-    runs-on: ubuntu-latest
-    steps:
-    - name: Setup
-      uses: Azure/k8s-set-context@v1
-      with:
-        method: kubeconfig
-        kubeconfig: ${{ secrets.KUBE_CONFIG }}
-    - name: Deploy
-      run: kubectl rollout restart deployment app-filestash-demo -n filestash
