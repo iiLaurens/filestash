@@ -18,12 +18,12 @@ func init() {
 	Hooks.Register.Thumbnailer("video/mp4", thumbnailHandler)
 }
 
-func thumbnailHandler(reader io.ReadCloser, ctx *common.App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
+func thumbnailHandler(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
 	p := req.URL.Query().Get("thumbnail")
 	if p == "" || p == "false" {
 		return reader, nil
 	}
-	mType := common.GetMimeType(req.URL.Query().Get("path"))
+	mType := GetMimeType(req.URL.Query().Get("path"))
 
 	if !strings.HasPrefix(mType, "video/") {
 		return reader, nil
@@ -35,7 +35,7 @@ func thumbnailHandler(reader io.ReadCloser, ctx *common.App, res *http.ResponseW
 		r, err := generateThumbnail(reader)
 		if err != nil {
 			h.Set("Content-Type", "image/png")
-			return common.NewReadCloserFromBytes(placeholder), nil
+			return NewReadCloserFromBytes(placeholder), nil
 		}
 		h.Set("Content-Type", "image/png")
 		h.Set("Cache-Control", fmt.Sprintf("max-age=%d", 3600*12))
@@ -43,7 +43,7 @@ func thumbnailHandler(reader io.ReadCloser, ctx *common.App, res *http.ResponseW
 	default:
 		reader.Close()
 		(*res).Header().Set("Content-Type", "image/png")
-		return common.NewReadCloserFromBytes(placeholder), nil
+		return NewReadCloserFromBytes(placeholder), nil
 	}
 }
 
@@ -64,9 +64,9 @@ func generateThumbnail(reader io.ReadCloser) (io.ReadCloser, error) {
 	cmd.Stderr = &str
 	cmd.Stdout = &buf
 	if err := cmd.Run(); err != nil {
-		common.Log.Debug("plg_video_thumbnail::ffmpeg::stderr %s", str.String())
-		common.Log.Error("plg_video_thumbnail::ffmpeg::run %s", err.Error())
+		Log.Debug("plg_video_thumbnail::ffmpeg::stderr %s", str.String())
+		Log.Error("plg_video_thumbnail::ffmpeg::run %s", err.Error())
 		return nil, err
 	}
-	return common.NewReadCloserFromBytes(buf.Bytes()), nil
+	return NewReadCloserFromBytes(buf.Bytes()), nil
 }
