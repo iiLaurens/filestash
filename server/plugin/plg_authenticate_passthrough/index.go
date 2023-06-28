@@ -2,7 +2,7 @@ package plg_authenticate_passthrough
 
 import (
 	"fmt"
-	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/common"
 	"net/http"
 )
 

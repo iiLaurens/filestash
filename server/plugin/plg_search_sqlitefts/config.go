@@ -1,7 +1,7 @@
 package plg_search_sqlitefts
 
 import (
-	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/common"
 	"time"
 )
 

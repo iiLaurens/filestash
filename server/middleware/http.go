@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"fmt"
-	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/common"
 	"golang.org/x/time/rate"
 	"net/http"
 	"net/url"

@@ -1,8 +1,8 @@
 # SAML
 
-[![](https://godoc.org/github.com/mickael-kerjean/saml?status.svg)](http://godoc.org/github.com/mickael-kerjean/saml)
+[![](https://godoc.org/github.com/iilaurens/saml?status.svg)](http://godoc.org/github.com/iilaurens/saml)
 
-![Build Status](https://github.com/mickael-kerjean/saml/workflows/Presubmit/badge.svg)
+![Build Status](https://github.com/iilaurens/saml/workflows/Presubmit/badge.svg)
 
 Package saml contains a partial implementation of the SAML standard in golang.
 SAML is a standard for identity federation, i.e. either allowing a third party to authenticate your users or allowing third parties to rely on us to authenticate their users.
@@ -54,7 +54,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/mickael-kerjean/saml/samlsp"
+	"github.com/iilaurens/saml/samlsp"
 )
 
 func hello(w http.ResponseWriter, r *http.Request) {

@@ -2,7 +2,7 @@ package plg_backend_git
 
 import (
 	"fmt"
-	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/common"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"

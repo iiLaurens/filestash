@@ -1,7 +1,7 @@
 package model
 
 import (
-	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/common"
 )
 
 func init() {
