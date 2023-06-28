@@ -1,7 +1,7 @@
 package plg_image_ascii
 
 import (
-	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/common"
 	"github.com/qeesung/image2ascii/convert"
 	"image"
 	"io"

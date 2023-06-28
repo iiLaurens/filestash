@@ -2,7 +2,7 @@ package plg_backend_webdav
 
 import (
 	"encoding/xml"
-	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/common"
 	"io"
 	"net/http"
 	"net/url"

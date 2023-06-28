@@ -3,7 +3,7 @@
 # # perform image resizing jobs. You can run it like this:
 # docker run -ti --name debian_build_dep -v /home/:/home/ debian:9 bash
 # apt-get -y update && apt-get -y install git
-# git clone https://github.com/mickael-kerjean/filestash
+# git clone https://github.com/iilaurens/filestash
 # cd filestash/server/plugin/plg_image_light/deps/
 # ./create_libresize.sh
 set -e

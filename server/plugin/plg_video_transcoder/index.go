@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	. "github.com/mickael-kerjean/filestash/server/common"
-	. "github.com/mickael-kerjean/filestash/server/middleware"
+	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/middleware"
 )
 
 const (

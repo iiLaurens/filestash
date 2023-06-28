@@ -2,7 +2,7 @@
   "name": "filestash",
   "version": "0.0.0",
   "description": "An app to manage your files in the cloud",
-  "repository": "https://github.com/mickael-kerjean/filestash",
+  "repository": "https://github.com/iilaurens/filestash",
   "main": "server/index.js",
   "scripts": {
     "start": "NODE_ENV=development webpack --watch",
@@ -13,7 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "aes-js": "git+https://github.com/mickael-kerjean/aes-js.git",
+    "aes-js": "git+https://github.com/iilaurens/aes-js.git",
     "bcryptjs": "^2.4.3",
     "codemirror": "^5.26.0",
     "epubjs": "^0.3.93",

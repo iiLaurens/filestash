@@ -1,7 +1,7 @@
 package plg_image_transcode
 
 import (
-	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/common"
 	_ "golang.org/x/image/bmp"
 	"image"
 	"image/jpeg"

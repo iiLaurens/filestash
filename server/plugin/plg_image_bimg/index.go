@@ -2,7 +2,7 @@ package plg_image_golang
 
 import (
 	"github.com/h2non/bimg"
-	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/common"
 	"io"
 	"io/ioutil"
 	"net/http"

@@ -3,7 +3,7 @@ package plg_image_transcode
 import (
 	"bufio"
 	"bytes"
-	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/iilaurens/filestash/server/common"
 	"github.com/suyashkumar/dicom"
 	"github.com/suyashkumar/dicom/pkg/tag"
 	"image/jpeg"

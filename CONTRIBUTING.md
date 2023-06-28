@@ -19,7 +19,7 @@ As the copyright owner, you agree to license your contributions under an irrevoc
 
 ```
 # Download the source
-git clone https://github.com/mickael-kerjean/filestash
+git clone https://github.com/iilaurens/filestash
 cd filestash
 
 # Install dependencies
