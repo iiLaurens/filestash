@@ -8,8 +8,7 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
-
-	"github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 )
 
 //go:embed dist/placeholder.png
