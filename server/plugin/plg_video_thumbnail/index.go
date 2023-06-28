@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
-	"strings"
 	. "github.com/iilaurens/filestash/server/common"
 )
 
@@ -15,39 +14,30 @@ import (
 var placeholder []byte
 
 func init() {
-	Hooks.Register.Thumbnailer("video/mp4", thumbnailHandler)
+	Hooks.Register.Thumbnailer("video/mp4", thumbnailBuilder{thumbnailMp4})
 }
 
-func thumbnailHandler(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
-	p := req.URL.Query().Get("thumbnail")
-	if p == "" || p == "false" {
-		return reader, nil
-	}
-	mType := GetMimeType(req.URL.Query().Get("path"))
+type thumbnailBuilder struct {
+	fn func(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error)
+}
 
-	if !strings.HasPrefix(mType, "video/") {
-		return reader, nil
-	}
+func (this thumbnailBuilder) Generate(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
+	return this.fn(reader, ctx, res, req)
+}
 
-	switch mType {
-	case "video/mp4":
-		h := (*res).Header()
-		r, err := generateThumbnail(reader)
-		if err != nil {
-			h.Set("Content-Type", "image/png")
-			return NewReadCloserFromBytes(placeholder), nil
-		}
+func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
+	h := (*res).Header()
+	r, err := generateThumbnailFromVideo(reader)
+	if err != nil {
 		h.Set("Content-Type", "image/png")
-		h.Set("Cache-Control", fmt.Sprintf("max-age=%d", 3600*12))
-		return r, nil
-	default:
-		reader.Close()
-		(*res).Header().Set("Content-Type", "image/png")
 		return NewReadCloserFromBytes(placeholder), nil
 	}
+	h.Set("Content-Type", "image/png")
+	h.Set("Cache-Control", fmt.Sprintf("max-age=%d", 3600*12))
+	return r, nil
 }
 
-func generateThumbnail(reader io.ReadCloser) (io.ReadCloser, error) {
+func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 	var buf bytes.Buffer
 	var str bytes.Buffer
 
