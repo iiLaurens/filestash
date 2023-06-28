@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -79,7 +78,7 @@ func init() {
 		return
 	}
 
-	cachePath := filepath.Join(GetCurrentDir(), VideoCachePath)
+	cachePath := GetAbsolutePath(VideoCachePath)
 	os.RemoveAll(cachePath)
 	os.MkdirAll(cachePath, os.ModePerm)
 
@@ -125,8 +124,7 @@ func hls_playlist(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 	}
 
 	cacheName := "vid_" + GenerateID(ctx) + "_" + QuickHash(path, 10) + ".dat"
-	cachePath := filepath.Join(
-		GetCurrentDir(),
+	cachePath := GetAbsolutePath(
 		VideoCachePath,
 		cacheName,
 	)
@@ -173,8 +171,7 @@ func hls_transcode(ctx *App, res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	startTime := segmentNumber * HLS_SEGMENT_LENGTH
-	cachePath := filepath.Join(
-		GetCurrentDir(),
+	cachePath := GetAbsolutePath(
 		VideoCachePath,
 		req.URL.Query().Get("path"),
 	)
@@ -219,10 +216,7 @@ func hls_transcode(ctx *App, res http.ResponseWriter, req *http.Request) {
 	cmd.Stderr = &str
 	err = cmd.Run()
 	if err != nil {
-		Log.Error("plg_video_transcoder::ffmpeg::run '%s'", err.Error())
-	}
-	if str.String() != "" {
-		Log.Debug("plg_video_transcoder::ffmpeg::stderr %s", str.String())
+		Log.Error("plg_video_transcoder::ffmpeg::run '%s' - %s", err.Error(), str.String())
 	}
 }
 

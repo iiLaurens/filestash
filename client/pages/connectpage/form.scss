@@ -3,6 +3,7 @@
         margin-bottom: 7px;
         border-radius: 3px;
         box-shadow: 1px 1px 5px rgba(0,0,0,0.2);
+        background: white;
     }
     div.buttons{
         display: flex;
@@ -55,9 +56,8 @@
                 margin: 0;
             }
         }
-        input[type="checkbox"]{
-            top: 0px;
-            margin-right: 5px;
+        .component_checkbox .indicator{
+            top: 2px;
         }
         input.component_input[name="oauth2"]{
             display: none;
@@ -102,7 +102,7 @@
 
 .dark-mode{
     div.buttons button.active{
-        background: var(--dark-mode-bg-color);
-        color: var(--light);
+        background: var(--bg-color);
+        color: var(--super-light);
     }
 }

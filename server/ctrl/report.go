@@ -5,7 +5,6 @@ import (
 	. "github.com/mickael-kerjean/filestash/server/common"
 	"net/http"
 	"os"
-	"path/filepath"
 )
 
 func ReportHandler(ctx *App, res http.ResponseWriter, req *http.Request) {
@@ -17,14 +16,14 @@ func WellKnownSecurityHandler(ctx *App, res http.ResponseWriter, req *http.Reque
 	res.WriteHeader(http.StatusOK)
 	res.Write([]byte("# If you would like to report a security issue\n"))
 	res.Write([]byte("# you may report it to me via email\n"))
-	res.Write([]byte("Contact: mickael@kerjean.me"))
+	res.Write([]byte("Contact: support@filestash.app\n"))
 }
 
 func HealthHandler(ctx *App, res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Access-Control-Allow-Origin", "*")
 	// CHECK 1: open the config file
 	file, err := os.OpenFile(
-		filepath.Join(GetCurrentDir(), CONFIG_PATH, "config.json"),
+		GetAbsolutePath(CONFIG_PATH, "config.json"),
 		os.O_RDWR, os.ModePerm,
 	)
 	if err != nil {

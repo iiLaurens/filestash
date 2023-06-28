@@ -2,13 +2,13 @@ import React, { createRef } from "react";
 import path from "path";
 import { Link } from "react-router-dom";
 import { DragSource, DropTarget } from "react-dnd";
-import { createSelectable } from "react-selectable";
 
 import "./thing.scss";
-import { Card, NgIf, Icon, EventEmitter, img_placeholder } from "../../components/";
+import { Card, NgIf, Icon, EventEmitter, img_placeholder, Input } from "../../components/";
 import { pathBuilder, basename, filetype, prompt, alert, leftPad, getMimeType, debounce, memory } from "../../helpers/";
 import { Files } from "../../model/";
 import { ShareComponent } from "./share";
+import { TagComponent } from "./tag";
 import { t } from "../../locales/";
 
 
@@ -164,8 +164,8 @@ class ExistingThingComponent extends React.Component {
 
     updateThumbnail(props) {
         if (props.view === "grid" && props.icon !== "loading") {
-            const type = getMimeType(props.file.path).split("/")[0];
-            if (type === "image" || type === "video") {
+            const mimetype = getMimeType(props.file.path);
+            if (window.CONFIG.thumbnailer.indexOf(mimetype) !== -1) {
                 Files.url(props.file.path).then((url) => {
                     this.setState({ 
                         preview: url+"&thumbnail=true",
@@ -231,6 +231,13 @@ class ExistingThingComponent extends React.Component {
         this.setState({ delete_request: false });
     }
 
+    onTagRequest() {
+        alert.now(
+            <TagComponent path={this.props.file.path} type={this.props.file.type} />,
+            () => {},
+        )
+    }
+
     onShareRequest(filename) {
         alert.now(
             <ShareComponent path={this.props.file.path} type={this.props.file.type} />,
@@ -239,13 +246,21 @@ class ExistingThingComponent extends React.Component {
     }
 
     onThingClick(e) {
-        if (e.ctrlKey === true) {
+        if (e.ctrlKey === true || e.target.classList.contains("component_checkbox")) {
             e.preventDefault();
             this.props.emit(
                 "file.select",
                 pathBuilder(this.props.path, this.props.file.name, this.props.file.type),
             );
         }
+    }
+
+    onThingClickCheckbox(e) {
+        e.preventDefault();
+        this.props.emit(
+            "file.select",
+            pathBuilder(this.props.path, this.props.file.name, this.props.file.type),
+        );
     }
 
     _confirm_delete_text() {
@@ -280,14 +295,22 @@ class ExistingThingComponent extends React.Component {
             .replace(/\?/g, "%3F")
             .replace(/\#/g, "%23");
 
+        const onClickCheckbox = (e, scaleNumber) => {
+            const $box = e.target.parentElement.parentElement.parentElement;
+            if ($box.classList.contains("view-grid") === false) return;
+            $box.style.transform = `scale(${scaleNumber})`;
+        };
+
         return connectDragSource(connectDropNativeFile(connectDropFile(
-            <div className={"component_thing view-"+this.props.view+(this.props.selected === true ? " selected" : " not-selected")}>
+            <div className={"component_thing" + ` view-${this.props.view}`+
+                            (this.props.selected === true ? " selected" : " not-selected")}>
                 <ToggleableLink
                     onClick={this.onThingClick.bind(this)}
                     to={fileLink + window.location.search}
-                    disabled={this.props.file.icon === "loading"}>
+                    disabled={this.props.file.icon === "loading" || this.state.is_renaming}>
                     <Card
                         className={className + " " + this.state.hover}>
+                        <Input type="checkbox" checked={this.props.selected} onMouseUp={(e) => onClickCheckbox(e, 1)} onMouseDown={(e) => onClickCheckbox(e, 0.95)}/>
                         <Image
                             preview={this.state.preview}
                             previewType={this.state.previewType}
@@ -310,6 +333,7 @@ class ExistingThingComponent extends React.Component {
                             onClickRename={this.onRenameRequest.bind(this)}
                             onClickDelete={this.onDeleteRequest.bind(this)}
                             onClickShare={this.onShareRequest.bind(this)}
+                            onClickTag={this.onTagRequest.bind(this)}
                             is_renaming={this.state.is_renaming}
                             can_rename={this.props.metadata.can_rename !== false}
                             can_delete={this.props.metadata.can_delete !== false}
@@ -322,13 +346,11 @@ class ExistingThingComponent extends React.Component {
     }
 }
 
-export const ExistingThing = createSelectable(
-    EventEmitter(
-        HOCDropTargetForFsFile(
-            HOVDropTargetForVirtualFile(
-                HOVDropSourceForVirtualFile(
-                    ExistingThingComponent,
-                ),
+export const ExistingThing = EventEmitter(
+    HOCDropTargetForFsFile(
+        HOVDropTargetForVirtualFile(
+            HOVDropSourceForVirtualFile(
+                ExistingThingComponent,
             ),
         ),
     ),
@@ -362,6 +384,7 @@ class Filename extends React.Component {
         e.preventDefault();
         e.stopPropagation();
         this.props.onRename(this.state.filename);
+        return false;
     }
 
     onCancel() {
@@ -371,6 +394,7 @@ class Filename extends React.Component {
 
     preventSelect(e) {
         e.preventDefault();
+        e.stopPropagation();
     }
 
     render() {
@@ -403,7 +427,7 @@ class Filename extends React.Component {
                     <NgIf cond={this.props.is_renaming === true} type="inline">
                         <form
                             onClick={this.preventSelect}
-                            onSubmit={this.onRename.bind(this)}>
+                            onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); this.onRename(e) }}>
                             <input
                                 value={this.state.filename}
                                 onChange={(e) => this.setState({ filename: e.target.value })}
@@ -434,6 +458,11 @@ const ActionButton = (props) => {
         props.onClickShare();
     };
 
+    const onTag = (e) => {
+        e.preventDefault();
+        props.onClickTag();
+    }
+
     return (
         <div className="component_action">
             <NgIf
@@ -444,14 +473,25 @@ const ActionButton = (props) => {
                     onClick={onRename}
                     className="component_updater--icon" />
             </NgIf>
-            <NgIf
-                type="inline"
-                cond={props.can_delete !== false}>
-                <Icon
-                    name="delete"
-                    onClick={onDelete}
-                    className="component_updater--icon" />
-            </NgIf>
+            {
+                /canary/.test(location.search) ? (
+                    <span type="inline">
+                        <Icon
+                            name="tag"
+                            onClick={onTag}
+                            className="component_updater--icon" />
+                    </span>
+                ) : (
+                    <NgIf
+                        type="inline"
+                        cond={props.can_delete !== false}>
+                        <Icon
+                            name="delete"
+                            onClick={onDelete}
+                            className="component_updater--icon" />
+                    </NgIf>
+                )
+            }
             <NgIf
                 type="inline"
                 cond={props.can_share !== false}>
@@ -466,16 +506,15 @@ const ActionButton = (props) => {
 
 const DateTime = (props) => {
     function displayTime(timestamp) {
-        if (timestamp) {
-            const t = new Date(timestamp);
-            if("DateTimeFormat" in Intl) {
-                const str = new Intl.DateTimeFormat({ dateStyle: "short" }).format(t);
-                if (str.length <= 10) return str;
-            }
-            return t.getFullYear() + "-" + leftPad((t.getMonth() + 1).toString(), 2) + "-" + leftPad(t.getDate().toString(), 2);
-        } else {
+        if (!timestamp || timestamp < 0) {
             return "";
         }
+        const t = new Date(timestamp);
+        if("DateTimeFormat" in Intl) {
+            const str = new Intl.DateTimeFormat({ dateStyle: "short" }).format(t);
+            if (str.length <= 10) return str;
+        }
+        return t.getFullYear() + "-" + leftPad((t.getMonth() + 1).toString(), 2) + "-" + leftPad(t.getDate().toString(), 2);
     }
 
     if (props.show === false) {
@@ -491,8 +530,7 @@ const DateTime = (props) => {
 
 const FileSize = (props) => {
     function displaySize(bytes) {
-        if (bytes === -1) return "";
-        if (Number.isNaN(bytes) || bytes === undefined) {
+        if (Number.isNaN(bytes) || bytes < 0 || bytes === undefined) {
             return "";
         } else if (bytes < 1024) {
             return "("+bytes+"B)";

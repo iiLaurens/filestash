@@ -17,6 +17,7 @@ export const MenuBar = (props) => {
                     <div className="action-item no-select">
                         <span className="specific">
                             {props.children}
+                            <span id="chromecast-target"></span>
                         </span>
                         {
                             props.download === null ?

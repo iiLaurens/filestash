@@ -43,10 +43,13 @@ func IndexHeaders(fn func(*App, http.ResponseWriter, *http.Request)) func(ctx *A
 		header.Set("X-Powered-By", fmt.Sprintf("Filestash/%s.%s <https://filestash.app>", APP_VERSION, BUILD_DATE))
 
 		cspHeader := "default-src 'none'; "
-		cspHeader += "style-src 'self' 'unsafe-inline'; "
-		cspHeader += "font-src 'self' data:; "
+		cspHeader += "style-src 'self' 'unsafe-inline' blob:; "
+		cspHeader += "font-src 'self' data: blob:; "
 		cspHeader += "manifest-src 'self'; "
 		cspHeader += "script-src 'self' 'sha256-JNAde5CZQqXtYRLUk8CGgyJXo6C7Zs1lXPPClLM1YM4=' 'sha256-9/gQeQaAmVkFStl6tfCbHXn8mr6PgtxlH+hEp685lzY=' 'sha256-ER9LZCe8unYk8AJJ2qopE+rFh7OUv8QG5q3h6jZeoSk='; "
+		if Config.Get("features.protection.enable_chromecast").Bool() {
+			cspHeader += "script-src-elem 'self' 'unsafe-inline' https://www.gstatic.com http://www.gstatic.com; "
+		}
 		cspHeader += "img-src 'self' blob: data: https://maps.wikimedia.org; "
 		cspHeader += "connect-src 'self'; "
 		cspHeader += "object-src 'self'; "
@@ -100,7 +103,7 @@ func SecureOrigin(fn func(*App, http.ResponseWriter, *http.Request)) func(ctx *A
 			return
 		}
 
-		Log.Warning("Intrusion detection: %s - %s", req.RemoteAddr, req.URL.String())
+		Log.Warning("Intrusion detection: %s - %s", RetrievePublicIp(req), req.URL.String())
 		SendErrorResult(res, ErrNotAllowed)
 	}
 }
@@ -137,9 +140,10 @@ var limiter = rate.NewLimiter(10, 1000)
 func RateLimiter(fn func(*App, http.ResponseWriter, *http.Request)) func(ctx *App, res http.ResponseWriter, req *http.Request) {
 	return func(ctx *App, res http.ResponseWriter, req *http.Request) {
 		if limiter.Allow() == false {
+			Log.Warning("middleware::http::ratelimit too many requests")
 			SendErrorResult(
 				res,
-				NewError(http.StatusText(429), http.StatusTooManyRequests),
+				NewError(http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests),
 			)
 			return
 		}
@@ -180,4 +184,12 @@ func EnableCors(req *http.Request, res http.ResponseWriter, host string) error {
 	h.Set("Access-Control-Allow-Methods", method)
 	h.Set("Access-Control-Allow-Headers", "Authorization")
 	return nil
+}
+
+func RetrievePublicIp(req *http.Request) string {
+	if req.Header.Get("X-Forwarded-For") != "" {
+		return req.Header.Get("X-Forwarded-For")
+	} else { 
+		return req.RemoteAddr
+	}
 }

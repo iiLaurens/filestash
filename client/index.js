@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import Router from "./router";
 
-import { Config, Log } from "./model/";
+import { Config, Log, Chromecast } from "./model/";
 import { http_get, setup_cache } from "./helpers/";
 import load from "little-loader";
 
@@ -10,7 +10,8 @@ import "./assets/css/reset.scss";
 
 (function() {
     Promise.all([
-        setup_dom(), setup_translation(), setup_xdg_open(), setup_cache(), Config.refresh(),
+        setup_dom(), setup_translation(), setup_xdg_open(), setup_cache(),
+        Config.refresh().then(setup_chromecast),
     ]).then(() => {
         const timeSinceBoot = new Date() - window.initTime;
         if (window.CONFIG.name) document.title = window.CONFIG.name;
@@ -76,7 +77,7 @@ function $error(msg) {
     $code.textContent = msg;
 
     let $img = document.createElement("img");
-    $img.setAttribute("src", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABIAQMAAABvIyEEAAAABlBMVEUAAABTU1OoaSf/AAAAAXRSTlMAQObYZgAAAENJREFUeF7tzbEJACEQRNGBLeAasBCza2lLEGx0CxFGG9hBMDDxRy/72O9FMnIFapGylsu1fgoBdkXfUHLrQgdfrlJN1BdYBjQQm3UAAAAASUVORK5CYII=");
+    $img.setAttribute("src", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABQAQMAAADcLOLWAAAABlBMVEUAAABTU1OoaSf/AAAAAXRSTlMAQObYZgAAAFlJREFUeF69zrERgCAQBdElMqQEOtHSuNIohRIMjfjO6DDmB7jZy5YgySQVYDIakIHD1kBPC9Bra5G2Ans0N7iAcOLF+EHvXySpjSBWCDI/3nIdBDihr8m4AcKdbn96jpAHAAAAAElFTkSuQmCC");
     $img.style.display = "block";
     $img.style.padding = "20vh 10% 0 10%";
 
@@ -139,4 +140,15 @@ function setup_translation() {
     return http_get("/assets/locales/"+selectedLanguage+".json").then((d) => {
         window.LNG = d;
     });
+}
+
+function setup_chromecast() {
+    if (!CONFIG.enable_chromecast) {
+        return Promise.resolve();
+    } else if (!("chrome" in window)) {
+        return Promise.resolve();
+	} else if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+        return Promise.resolve();
+    }
+    return Chromecast.init();
 }

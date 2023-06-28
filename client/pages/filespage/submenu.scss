@@ -1,5 +1,13 @@
 @import "../../assets/css/mixin.scss";
 .component_submenu{
+    &.sticky {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: var(--bg-color);
+        opacity: 0.95;
+    }
+
     .component_container{
         padding-left: 0;
         padding-right: 0;
@@ -98,4 +106,8 @@
         opacity: 1;
         transform: translateY(0px);
     }
+}
+
+.dark-mode .component_submenu {
+    input#search { color: rgba(255, 255, 255, 0.8); }
 }

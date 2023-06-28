@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -103,6 +104,7 @@ func NewConfiguration() Configuration {
 						Title: "protection",
 						Elmnts: []FormElement{
 							FormElement{Name: "iframe", Type: "text", Default: "", Description: "list of domains who can use the application from an iframe. eg: https://www.filestash.app http://example.com"},
+							FormElement{Name: "enable_chromecast", Type: "boolean", Default: true, Description: "Enable users to stream content on a chromecast device. This feature requires the browser to access google's server to download the chromecast SDK."},
 						},
 					},
 				},
@@ -111,7 +113,7 @@ func NewConfiguration() Configuration {
 				Title: "log",
 				Elmnts: []FormElement{
 					FormElement{Name: "enable", Type: "enable", Target: []string{"log_level"}, Default: true},
-					FormElement{Name: "level", Type: "select", Default: "INFO", Opts: []string{"DEBUG", "INFO", "WARNING", "ERROR"}, Id: "log_level", Description: "Default: \"INFO\". This setting determines the level of detail at which log events are written to the log file"},
+					FormElement{Name: "level", Type: "select", Default: defaultValue("INFO", "LOG_LEVEL"), Opts: []string{"DEBUG", "INFO", "WARNING", "ERROR"}, Id: "log_level", Description: "Default: \"INFO\". This setting determines the level of detail at which log events are written to the log file"},
 					FormElement{Name: "telemetry", Type: "boolean", Default: false, Description: "We won't share anything with any third party. This will only to be used to improve Filestash"},
 				},
 			},
@@ -360,7 +362,9 @@ func (this *Configuration) Export() interface{} {
 		RefreshAfterUpload      bool              `json:"refresh_after_upload"`
 		FilePageDefaultSort     string            `json:"default_sort"`
 		FilePageDefaultView     string            `json:"default_view"`
-		AuthMiddleware          interface{}       `json:"auth"`
+		AuthMiddleware          []string          `json:"auth"`
+		Thumbnailer             []string          `json:"thumbnailer"`
+		EnableChromecast        bool              `json:"enable_chromecast"`
 	}{
 		Editor:                  this.Get("general.editor").String(),
 		ForkButton:              this.Get("general.fork_button").Bool(),
@@ -377,12 +381,25 @@ func (this *Configuration) Export() interface{} {
 		RefreshAfterUpload:      this.Get("general.refresh_after_upload").Bool(),
 		FilePageDefaultSort:     this.Get("general.filepage_default_sort").String(),
 		FilePageDefaultView:     this.Get("general.filepage_default_view").String(),
-		AuthMiddleware: func() string {
+		AuthMiddleware: func() []string {
 			if this.Get("middleware.identity_provider.type").String() == "" {
-				return ""
+				return []string{}
 			}
-			return this.Get("middleware.attribute_mapping.related_backend").String()
+			return regexp.MustCompile("\\s*,\\s*").Split(
+				this.Get("middleware.attribute_mapping.related_backend").String(), -1,
+			)
 		}(),
+		Thumbnailer: func() []string {
+			tMap := Hooks.Get.Thumbnailer()
+			tArray := make([]string, len(tMap))
+			i := 0
+			for key, _ := range tMap {
+				tArray[i] = key
+				i += 1
+			}
+			return tArray
+		}(),
+		EnableChromecast: this.Get("features.protection.enable_chromecast").Bool(),
 	}
 }
 
@@ -575,4 +592,11 @@ func (this *Configuration) UnlistenForChange(c ChangeListener) {
 type ChangeListener struct {
 	Id       string
 	Listener chan interface{}
+}
+
+func defaultValue(dval string, envName string) string {
+	if val := os.Getenv(envName); val != "" {
+		return val
+	}
+	return dval
 }

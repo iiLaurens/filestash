@@ -53,10 +53,12 @@ func AdminOnly(fn func(*App, http.ResponseWriter, *http.Request)) func(ctx *App,
 func SessionStart(fn func(*App, http.ResponseWriter, *http.Request)) func(ctx *App, res http.ResponseWriter, req *http.Request) {
 	return func(ctx *App, res http.ResponseWriter, req *http.Request) {
 		var err error
+
 		if ctx.Share, err = _extractShare(req); err != nil {
 			SendErrorResult(res, err)
 			return
 		}
+		ctx.Authorization = _extractAuthorization(req)
 		if ctx.Session, err = _extractSession(req, ctx); err != nil {
 			SendErrorResult(res, err)
 			return
@@ -76,6 +78,7 @@ func SessionStart(fn func(*App, http.ResponseWriter, *http.Request)) func(ctx *A
 func SessionTry(fn func(*App, http.ResponseWriter, *http.Request)) func(ctx *App, res http.ResponseWriter, req *http.Request) {
 	return func(ctx *App, res http.ResponseWriter, req *http.Request) {
 		ctx.Share, _ = _extractShare(req)
+		ctx.Authorization = _extractAuthorization(req)
 		ctx.Session, _ = _extractSession(req, ctx)
 		ctx.Backend, _ = _extractBackend(req, ctx)
 		fn(ctx, res, req)
@@ -128,6 +131,7 @@ func CanManageShare(fn func(*App, http.ResponseWriter, *http.Request)) func(ctx 
 		// the user that's currently logged in can manage the link. 2 scenarios here:
 		// 1) scenario 1: the user is the very same one that generated the shared link in the first place
 		ctx.Share = Share{}
+		ctx.Authorization = _extractAuthorization(req)
 		if ctx.Session, err = _extractSession(req, ctx); err != nil {
 			Log.Debug("middleware::session::share 'cannot extract session - %s'", err.Error())
 			SendErrorResult(res, err)
@@ -144,6 +148,7 @@ func CanManageShare(fn func(*App, http.ResponseWriter, *http.Request)) func(ctx 
 			SendErrorResult(res, err)
 			return
 		}
+		ctx.Authorization = _extractAuthorization(req)
 		if ctx.Session, err = _extractSession(req, ctx); err != nil {
 			Log.Debug("middleware::session::share 'cannot extract session 2 - %s'", err.Error())
 			SendErrorResult(res, err)
@@ -156,11 +161,40 @@ func CanManageShare(fn func(*App, http.ResponseWriter, *http.Request)) func(ctx 
 				fn(ctx, res, req)
 				return
 			}
+			Log.Debug("middleware::session::share 'permission denied - s.CanShare[%+v] s.Backend[%s]'", s.CanShare, s.Backend)
+		} else {
+			Log.Debug("middleware::session::share 'permission denied - s.CanShare[%+v] s.Backend[%s] GenerateID[%s]'", s.CanShare, s.Backend, id)
 		}
-		Log.Debug("middleware::session::share 'permission denied - s.CanShare[%+v] s.Backend[%s] GenerateID[%s]'", s.CanShare, s.Backend, id)
 		SendErrorResult(res, ErrPermissionDenied)
 		return
 	}
+}
+
+func _extractAuthorization(req *http.Request) (token string) {
+	// strategy 1: split cookie
+	index := 0
+	for {
+		cookie, err := req.Cookie(CookieName(index))
+		if err != nil {
+			break
+		}
+		index++
+		token += cookie.Value
+	}
+	// strategy 2: Authorization header
+	if token == "" {
+		authHeader := req.Header.Get("Authorization")
+		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+			token = strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
+		}
+	}
+	// strategy 3: Authorization query param
+	if token == "" {
+		if auth := req.URL.Query().Get("authorization"); auth != "" {
+			token = auth
+		}
+	}
+	return token
 }
 
 func _extractShareId(req *http.Request) string {
@@ -182,8 +216,8 @@ func _extractShare(req *http.Request) (Share, error) {
 		return Share{}, nil
 	}
 	if Config.Get("features.share.enable").Bool() == false {
-		Log.Debug("Share feature isn't enable, contact your administrator")
-		return Share{}, NewError("Feature isn't enable, contact your administrator", 405)
+		Log.Debug("Share feature isn't enabled, contact your administrator")
+		return Share{}, NewError("Feature isn't enabled, contact your administrator", 405)
 	}
 
 	s, err := model.ShareGet(share_id)
@@ -236,9 +270,11 @@ func _extractShare(req *http.Request) (Share, error) {
 }
 
 func _extractSession(req *http.Request, ctx *App) (map[string]string, error) {
-	var str string
-	var err error
-	var session map[string]string = make(map[string]string)
+	var (
+		str     string
+		err     error
+		session map[string]string = make(map[string]string)
+	)
 
 	if ctx.Share.Id != "" { // Shared link
 		str, err = DecryptString(SECRET_KEY_DERIVATE_FOR_USER, ctx.Share.Auth)
@@ -265,26 +301,10 @@ func _extractSession(req *http.Request, ctx *App) (map[string]string, error) {
 		return session, err
 	}
 
-	str = ""
-	index := 0
-	for {
-		cookie, err := req.Cookie(CookieName(index))
-		if err != nil {
-			break
-		}
-		index++
-		str += cookie.Value
-	}
-	if str == "" {
-		authHeader := req.Header.Get("Authorization")
-		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-			str = strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
-		}
-	}
-	if str == "" {
+	if ctx.Authorization == "" {
 		return session, nil
 	}
-	str, err = DecryptString(SECRET_KEY_DERIVATE_FOR_USER, str)
+	str, err = DecryptString(SECRET_KEY_DERIVATE_FOR_USER, ctx.Authorization)
 	if err != nil {
 		// This typically happen when changing the secret key
 		Log.Debug("middleware::session decrypt error '%s'", err.Error())
