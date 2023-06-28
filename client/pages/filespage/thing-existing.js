@@ -169,7 +169,7 @@ class ExistingThingComponent extends React.Component {
                 Files.url(props.file.path).then((url) => {
                     this.setState({ 
                         preview: url+"&thumbnail=true",
-                        previewType: type,
+                        previewType: mimetype.split("/")[0],
                     });
                 });
             }
