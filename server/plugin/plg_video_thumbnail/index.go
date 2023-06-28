@@ -16,7 +16,7 @@ import (
 var placeholder []byte
 
 func init() {
-	common.Hooks.Register.ProcessFileContentBeforeSend(thumbnailHandler)
+	Hooks.Register.Thumbnailer("video/mp4", thumbnailHandler)
 }
 
 func thumbnailHandler(reader io.ReadCloser, ctx *common.App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
