@@ -2,11 +2,13 @@ package ctrl
 
 import (
 	"archive/zip"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"hash/fnv"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -31,7 +33,7 @@ var (
 
 func init() {
 	FileCache = NewAppCache()
-	cachePath := filepath.Join(GetCurrentDir(), TMP_PATH)
+	cachePath := GetAbsolutePath(TMP_PATH)
 	FileCache.OnEvict(func(key string, value interface{}) {
 		os.RemoveAll(filepath.Join(cachePath, key))
 	})
@@ -43,7 +45,7 @@ func init() {
 			f.Default = 60
 			f.Name = "zip_timeout"
 			f.Type = "number"
-			f.Description = "Timeout when user wants to download archive as a zip"
+			f.Description = "Timeout when user wants to download or extract a zip"
 			f.Placeholder = "Default: 60seconds"
 			return f
 		}).Int()
@@ -138,7 +140,13 @@ func FileLs(ctx *App, res http.ResponseWriter, req *http.Request) {
 }
 
 func FileCat(ctx *App, res http.ResponseWriter, req *http.Request) {
-	header := res.Header()
+	var (
+		file              io.ReadCloser
+		contentLength     int64       = -1
+		needToCreateCache bool        = false
+		query             url.Values  = req.URL.Query()
+		header            http.Header = res.Header()
+	)
 	http.SetCookie(res, &http.Cookie{
 		Name:   "download",
 		Value:  "",
@@ -150,7 +158,7 @@ func FileCat(ctx *App, res http.ResponseWriter, req *http.Request) {
 		SendErrorResult(res, ErrPermissionDenied)
 		return
 	}
-	path, err := PathBuilder(ctx, req.URL.Query().Get("path"))
+	path, err := PathBuilder(ctx, query.Get("path"))
 	if err != nil {
 		Log.Debug("cat::path '%s'", err.Error())
 		SendErrorResult(res, err)
@@ -164,10 +172,6 @@ func FileCat(ctx *App, res http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-
-	var file io.ReadCloser
-	var contentLength int64 = -1
-	var needToCreateCache bool = false
 
 	// use our cache if necessary (range request) when possible
 	if req.Header.Get("range") != "" {
@@ -184,13 +188,13 @@ func FileCat(ctx *App, res http.ResponseWriter, req *http.Request) {
 	}
 
 	// perform the actual `cat` if needed
+	mType := GetMimeType(query.Get("path"))
 	if file == nil {
 		if file, err = ctx.Backend.Cat(path); err != nil {
 			Log.Debug("cat::backend '%s'", err.Error())
 			SendErrorResult(res, err)
 			return
 		}
-		mType := GetMimeType(req.URL.Query().Get("path"))
 		if mType == "application/javascript" {
 			mType = "text/plain"
 		}
@@ -201,6 +205,20 @@ func FileCat(ctx *App, res http.ResponseWriter, req *http.Request) {
 	}
 
 	// plugin hooks
+	if thumb := query.Get("thumbnail"); thumb == "true" {
+		for plgMType, plgHandler := range Hooks.Get.Thumbnailer() {
+			if plgMType != mType {
+				continue
+			}
+			file, err = plgHandler.Generate(file, ctx, &res, req)
+			if err != nil {
+				Log.Debug("cat::thumbnailer '%s'", err.Error())
+				SendErrorResult(res, err)
+				return
+			}
+			break
+		}
+	}
 	for _, obj := range Hooks.Get.ProcessFileContentBeforeSend() {
 		if file, err = obj(file, ctx, &res, req); err != nil {
 			Log.Debug("cat::hooks '%s'", err.Error())
@@ -221,7 +239,7 @@ func FileCat(ctx *App, res http.ResponseWriter, req *http.Request) {
 				}
 			}
 		} else {
-			tmpPath := filepath.Join(GetCurrentDir(), TMP_PATH, "file_"+QuickString(20)+".dat")
+			tmpPath := GetAbsolutePath(TMP_PATH, "file_"+QuickString(20)+".dat")
 			f, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE, os.ModePerm)
 			if err != nil {
 				Log.Debug("cat::range0 '%s'", err.Error())
@@ -283,6 +301,9 @@ func FileCat(ctx *App, res http.ResponseWriter, req *http.Request) {
 	}
 	if header.Get("Content-Security-Policy") == "" {
 		header.Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'; font-src data:; script-src-elem 'self'")
+	}
+	if fname := query.Get("name"); fname != "" {
+		header.Set("Content-Disposition", "attachment; filename=\""+fname+"\"")
 	}
 	header.Set("Accept-Ranges", "bytes")
 
@@ -634,6 +655,126 @@ func FileDownloader(ctx *App, res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func FileExtract(ctx *App, res http.ResponseWriter, req *http.Request) {
+	if model.CanRead(ctx) == false {
+		Log.Debug("extract::permission 'permission denied'")
+		SendErrorResult(res, ErrPermissionDenied)
+		return
+	}
+	paths := req.URL.Query()["path"]
+	for _, auth := range Hooks.Get.AuthorisationMiddleware() {
+		for i := 0; i < len(paths); i++ {
+			if err := auth.Mkdir(ctx, paths[i]); err != nil {
+				Log.Debug("extract::permission::mkdir %s", err.Error())
+				SendErrorResult(res, ErrNotAuthorized)
+				return
+			} else if err := auth.Save(ctx, paths[i]); err != nil {
+				Log.Debug("extract::permission::Save %s", err.Error())
+				SendErrorResult(res, ErrNotAuthorized)
+				return
+			}
+		}
+	}
+
+	c, cancel := context.WithTimeout(ctx.Context, time.Duration(ZipTimeout())*time.Second)
+	extractPath := func(base string, path string) (string, error) {
+		base = filepath.Dir(base)
+		path = filepath.Join(base, path)
+		if strings.HasPrefix(path, base) == false {
+			return "", ErrFilesystemError
+		}
+		return path, nil
+	}
+	extractZip := func(path string) (err error) {
+		if err = c.Err(); err != nil {
+			cancel()
+			return ErrTimeout
+		}
+
+		zipFile, err := ctx.Backend.Cat(path)
+		if err != nil {
+			return err
+		}
+		defer zipFile.Close()
+		f, err := os.CreateTemp("", "tmpzip.*.zip")
+		if err != nil {
+			Log.Debug("extract::create_temp '%s'", err.Error())
+			return nil
+		}
+		defer os.Remove(f.Name())
+		io.Copy(f, zipFile)
+		s, err := f.Stat()
+		if err != nil {
+			return err
+		}
+		r, err := zip.NewReader(f, s.Size())
+		if err != nil {
+			return err
+		}
+		isFolderAlreadyCreated := map[string]bool{
+			fmt.Sprintf("%s/", filepath.Dir(path)): true,
+		}
+		for _, f := range r.File {
+			time.Sleep(2 * time.Millisecond)
+			if err = c.Err(); err != nil {
+				cancel()
+				return ErrTimeout
+			}
+			// STEP1: ensure the underlying folders exists
+			spl := strings.Split(f.Name, "/")
+			for i, p := range spl {
+				if p == "" {
+					continue
+				}
+				p = strings.Join(spl[0:i], "/")
+				p, err = extractPath(path, p)
+				if strings.HasSuffix(p, "/") == false {
+					p += "/"
+				}
+				if isFolderAlreadyCreated[p] {
+					continue
+				}
+				isFolderAlreadyCreated[p] = true
+				if err := ctx.Backend.Mkdir(p); err != nil {
+					Log.Debug("extract::mkdir err %s", err.Error())
+				}
+			}
+			// STEP2: create the file
+			if f.FileInfo().IsDir() == false {
+				p, err := extractPath(path, f.Name)
+				if err != nil {
+					Log.Debug("extract::chroot %s", err.Error())
+					return err
+				}
+				rc, err := f.Open()
+				if err != nil {
+					Log.Debug("extract::fopen %s", err.Error())
+					return err
+				}
+				err = ctx.Backend.Save(p, rc)
+				rc.Close()
+				if err != nil {
+					Log.Debug("extract::save err %s", err.Error())
+				}
+			}
+		}
+		return nil
+	}
+	var err error
+	for i := 0; i < len(paths); i++ {
+		if paths[i], err = PathBuilder(ctx, paths[i]); err != nil {
+			Log.Debug("extract::path '%s'", err.Error())
+			SendErrorResult(res, err)
+			return
+		}
+		if err = extractZip(paths[i]); err != nil {
+			SendErrorResult(res, err)
+			return
+		}
+	}
+	SendSuccessResult(res, nil)
+}
+
 func PathBuilder(ctx *App, path string) (string, error) {
 	if path == "" {
 		return "", NewError("No path available", 400)
@@ -644,7 +785,7 @@ func PathBuilder(ctx *App, path string) (string, error) {
 		basePath += "/"
 	}
 	if strings.HasPrefix(basePath, ctx.Session["path"]) == false {
-		return "", NewError("There's nothing here", 403)
+		return "", ErrFilesystemError
 	}
 	return basePath, nil
 }

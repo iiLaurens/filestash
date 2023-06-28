@@ -35,7 +35,7 @@
 }
 
 :root {
-    --bg-color: #f2f3f5;
+    --bg-color: #fafafa;
     --color: #57595A;
     --emphasis: #466372;
     --primary: #9AD1ED;
@@ -99,13 +99,6 @@ button::-moz-focus-inner {
 input, textarea, select {
     transition: border 0.2s;
     outline: none;
-}
-
-input[type="checkbox"] {
-    position: relative;
-    vertical-align: top;
-    margin-top: auto;
-    margin-bottom: auto;
 }
 
 .no-select {

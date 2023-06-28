@@ -15,7 +15,7 @@
     </a>
     <br>
     <a href="#" alt="Build">
-        <img src="https://cloud.drone.io/api/badges/mickael-kerjean/filestash/status.svg" style="max-width:100%;">
+        <img src="https://github.com/mickael-kerjean/filestash/actions/workflows/ci.yml/badge.svg" style="max-width:100%;">
     </a>
     <a href="https://kiwiirc.com/nextclient/#irc://irc.libera.chat/#filestash?nick=guest??" alt="Chat on IRC">
         <img src="https://img.shields.io/badge/IRC-%23filestash-brightgreen.svg" style="max-width:100%;">
@@ -24,8 +24,8 @@
 
 <p align="center">
     A Dropbox-like file manager that let you manage your data anywhere it is located:<br>
-    <a href="https://www.filestash.app/ftp-client.html">FTP</a> • FTPS • <a href="https://www.filestash.app/ssh-file-transfer.html">SFTP</a> • <a href="https://www.filestash.app/webdav-client.html">WebDAV</a> • Git • <a href="https://www.filestash.app/s3-browser.html">S3</a> • <a href="https://www.filestash.app/ldap-browser.html">LDAP</a> • Mysql <br>
-       CardDAV • CalDAV • Backblaze B2 • <a href="https://www.filestash.app/s3-browser.html">Minio</a> <br>
+    <a href="https://www.filestash.app/ftp-client.html">FTP</a> • FTPS • <a href="https://www.filestash.app/ssh-file-transfer.html">SFTP</a> • <a href="https://www.filestash.app/webdav-client.html">WebDAV</a> • Git • <a href="https://www.filestash.app/s3-browser.html">S3</a> • NFS • Samba • Artifactory • <a href="https://www.filestash.app/ldap-browser.html">LDAP</a> • Mysql <br>
+       Storj • CardDAV • CalDAV • Backblaze B2 • <a href="https://www.filestash.app/s3-browser.html">Minio</a> <br>
                Dropbox • Google Drive
 </p>
 <p align="center">
@@ -36,7 +36,9 @@
 
 # Features
 - Manage your files from a browser
+- Authentication middleware to connect to various source of user
 - Flexible Share mechanism
+- Chromecast support for images, music, and videos
 - Video player
 - Video transcoding (mov, mkv, avi, mpeg, and more)
 - Image viewer
@@ -57,7 +59,13 @@
 - Nyan cat loader
 - Quick access: frequently access folders are pin to the homepage
 - Emacs, VIM or Sublime keybindings `;)`
-- Full Text Search
+- Search
+- .. and many more
+
+# Documentation
+- [Getting started](https://www.filestash.app/docs/)
+- [Installation](https://www.filestash.app/docs/install-and-upgrade/)
+- [FAQ](https://www.filestash.app/docs/faq/)
 
 # Screenshots
 <p align="center">
@@ -70,11 +78,6 @@
         <img src="https://raw.githubusercontent.com/mickael-kerjean/filestash_images/master/.assets/photo_management.gif" alt="user experience on medias" />
     </a>
 </p>
-
-# Documentation
-- [Getting started](https://www.filestash.app/docs/)
-- [Installation](https://www.filestash.app/docs/install-and-upgrade/)
-- [FAQ](https://www.filestash.app/docs/faq/)
 
 # The core idea
 

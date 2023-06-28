@@ -3,7 +3,7 @@ import React, { createRef } from "react";
 import { NgIf, Icon, Input } from "../../components/";
 import { Share } from "../../model/";
 import {
-    randomString, notify, absoluteToRelative, copyToClipboard, filetype,
+    randomString, notify, absoluteToRelative, copyToClipboard, filetype, pathBuilder,
 } from "../../helpers/";
 import { t } from "../../locales/";
 import "./share.scss";
@@ -133,7 +133,7 @@ export class ShareComponent extends React.Component {
             }(this.state.role),
         };
 
-        const links = [link];
+        const links = [{...link, path: "" }];
         for (let i=0; i<this.state.existings.length; i++) {
             let insert = true;
             for (let j=0; j<links.length; j++) {
@@ -164,16 +164,6 @@ export class ShareComponent extends React.Component {
 
 
     render() {
-        const beautifulPath = function(from, to) {
-            to = from.replace(/\/$/, "") + to;
-            if (filetype(from) === "directory") {
-                from = from.split("/");
-                from = from.slice(0, from.length - 1);
-                from = from.join("/");
-            }
-            const p = absoluteToRelative(from, to);
-            return p.length < to.length ? p : to;
-        };
         const urlify = function(str) {
             if (typeof str !== "string") return "";
 
@@ -200,23 +190,23 @@ export class ShareComponent extends React.Component {
                 <h2>{ t("Create a New Link") }</h2>
 
                 <div className="share--content link-type no-select">
-                    { this.props.type === "file" ? null :
-                        <div
-                            onClick={this.updateState.bind(this, "role", "uploader")}
-                            className={this.state.role === "uploader" ? "active" : ""}>
-                            { t("Uploader") }
-                        </div>
-                    }
                     <div
                         onClick={this.updateState.bind(this, "role", "viewer")}
-                        className={this.state.role === "viewer" ? "active" : ""}>
+                        className={"acl-r" + (this.state.role === "viewer" ? " active" : "")}>
                         { t("Viewer") }
                     </div>
                     <div
                         onClick={this.updateState.bind(this, "role", "editor")}
-                        className={this.state.role === "editor" ? "active" : ""}>
+                        className={"acl-rw" + (this.state.role === "editor" ? " active" : "")}>
                         { t("Editor") }
                     </div>
+                    { this.props.type === "file" ? null :
+                        <div
+                            onClick={this.updateState.bind(this, "role", "uploader")}
+                            className={"acl-w" + (this.state.role === "uploader" ? " active" : "")}>
+                            { t("Uploader") }
+                        </div>
+                    }
                 </div>
 
                 <NgIf
@@ -237,7 +227,7 @@ export class ShareComponent extends React.Component {
                                         <span
                                             onClick={this.copyLinkInClipboard.bind(this, window.location.origin+"/s/"+link.id)}
                                             className="copy path">
-                                            { beautifulPath(this.props.path, link.path) }
+                                            { pathBuilder(this.props.path, link.path.replace(/^\//, ""), this.props.type) }
                                         </span>
                                         <Icon
                                             onClick={this.onDeleteLink.bind(this, link.id)}
@@ -339,7 +329,7 @@ const SuperCheckbox = (props) => {
     return (
         <div className="component_supercheckbox">
             <label>
-                <input type="checkbox" checked={_is_expended} onChange={onCheckboxTick} />
+                <Input type="checkbox" checked={_is_expended} onChange={onCheckboxTick} />
                 {props.label}
             </label>
             <NgIf cond={_is_expended && props.inputType !== undefined}>

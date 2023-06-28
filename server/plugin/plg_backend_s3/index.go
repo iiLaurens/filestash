@@ -1,29 +1,36 @@
 package plg_backend_s3
 
 import (
+	"context"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/sts"
 	. "github.com/mickael-kerjean/filestash/server/common"
+
 	"io"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var S3Cache AppCache
 
 type S3Backend struct {
-	client *s3.S3
-	config *aws.Config
-	params map[string]string
+	client  *s3.S3
+	config  *aws.Config
+	params  map[string]string
+	context context.Context
 }
 
 func init() {
@@ -38,6 +45,9 @@ func (s S3Backend) Init(params map[string]string, app *App) (IBackend, error) {
 
 	if params["region"] == "" {
 		params["region"] = "us-east-2"
+		if strings.HasSuffix(params["endpoint"], ".cloudflarestorage.com") {
+			params["region"] = "auto"
+		}
 	}
 	creds := []credentials.Provider{}
 	if params["access_key_id"] != "" || params["secret_access_key"] != "" {
@@ -47,6 +57,16 @@ func (s S3Backend) Init(params map[string]string, app *App) (IBackend, error) {
 			SessionToken:    params["session_token"],
 		}})
 	}
+
+	if params["role_arn"] != "" {
+		sessOptions := session.Options{Config: aws.Config{Region: aws.String(params["region"])}}
+		creds = append(creds, &stscreds.AssumeRoleProvider{
+			Client:   sts.New(session.Must(session.NewSessionWithOptions(sessOptions))),
+			RoleARN:  params["role_arn"],
+			Duration: stscreds.DefaultDuration,
+		})
+	}
+
 	creds = append(
 		creds,
 		&ec2rolecreds.EC2RoleProvider{Client: ec2metadata.New(session.Must(session.NewSession()))},
@@ -63,9 +83,10 @@ func (s S3Backend) Init(params map[string]string, app *App) (IBackend, error) {
 	}
 
 	backend := &S3Backend{
-		config: config,
-		params: params,
-		client: s3.New(session.New(config)),
+		config:  config,
+		params:  params,
+		client:  s3.New(session.New(config)),
+		context: app.Context,
 	}
 	return backend, nil
 }
@@ -92,7 +113,13 @@ func (s S3Backend) LoginForm() Form {
 				Name:        "advanced",
 				Type:        "enable",
 				Placeholder: "Advanced",
-				Target:      []string{"s3_path", "s3_session_token", "s3_encryption_key", "s3_region", "s3_endpoint"},
+				Target:      []string{"s3_role_arn", "s3_path", "s3_session_token", "s3_encryption_key", "s3_region", "s3_endpoint"},
+			},
+			FormElement{
+				Id:          "s3_role_arn",
+				Name:        "role_arn",
+				Type:        "text",
+				Placeholder: "Role ARN",
 			},
 			FormElement{
 				Id:          "s3_session_token",
@@ -161,7 +188,9 @@ func (s S3Backend) Ls(path string) (files []os.FileInfo, err error) {
 	}
 	client := s3.New(s.createSession(p.bucket))
 
-	err = client.ListObjectsV2Pages(
+	startTime := time.Now()
+	err = client.ListObjectsV2PagesWithContext(
+		s.context,
 		&s3.ListObjectsV2Input{
 			Bucket:    aws.String(p.bucket),
 			Prefix:    aws.String(p.path),
@@ -185,7 +214,12 @@ func (s S3Backend) Ls(path string) (files []os.FileInfo, err error) {
 					FType: "directory",
 				})
 			}
-			return true
+
+			if time.Since(startTime) > ls_timeout() {
+				Log.Debug("plg_backend_s3::ls timeout triggered after getting %d files", len(files))
+				return false
+			}
+			return aws.BoolValue(objs.IsTruncated)
 		})
 	return files, err
 }
@@ -253,32 +287,36 @@ func (s S3Backend) Rm(path string) error {
 		})
 		return err
 	}
-
-	objs, err := client.ListObjects(&s3.ListObjectsInput{
-		Bucket:    aws.String(p.bucket),
-		Prefix:    aws.String(p.path),
-		Delimiter: aws.String("/"),
-	})
-	if err != nil {
-		return err
-	}
-	for _, obj := range objs.Contents {
-		_, err := client.DeleteObject(&s3.DeleteObjectInput{
-			Bucket: aws.String(p.bucket),
-			Key:    obj.Key,
+	for {
+		objs, err := client.ListObjects(&s3.ListObjectsInput{
+			Bucket:    aws.String(p.bucket),
+			Prefix:    aws.String(p.path),
+			Delimiter: aws.String("/"),
 		})
 		if err != nil {
 			return err
 		}
-	}
-	for _, pref := range objs.CommonPrefixes {
-		s.Rm("/" + p.bucket + "/" + *pref.Prefix)
-		_, err := client.DeleteObject(&s3.DeleteObjectInput{
-			Bucket: aws.String(p.bucket),
-			Key:    pref.Prefix,
-		})
-		if err != nil {
-			return err
+		for _, obj := range objs.Contents {
+			_, err := client.DeleteObject(&s3.DeleteObjectInput{
+				Bucket: aws.String(p.bucket),
+				Key:    obj.Key,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		for _, pref := range objs.CommonPrefixes {
+			s.Rm("/" + p.bucket + "/" + *pref.Prefix)
+			_, err := client.DeleteObject(&s3.DeleteObjectInput{
+				Bucket: aws.String(p.bucket),
+				Key:    pref.Prefix,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if !aws.BoolValue(objs.IsTruncated) {
+			break
 		}
 	}
 
@@ -288,7 +326,7 @@ func (s S3Backend) Rm(path string) error {
 		})
 		return err
 	}
-	_, err = client.DeleteObject(&s3.DeleteObjectInput{
+	_, err := client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(p.bucket),
 		Key:    aws.String(p.path),
 	})
@@ -418,7 +456,7 @@ func (s S3Backend) Save(path string, file io.Reader) error {
 	if p.bucket == "" {
 		return ErrNotValid
 	}
-	uploader := s3manager.NewUploader(s.createSession(path))
+	uploader := s3manager.NewUploader(s.createSession(p.bucket))
 	input := s3manager.UploadInput{
 		Body:   file,
 		Bucket: aws.String(p.bucket),
@@ -433,9 +471,11 @@ func (s S3Backend) Save(path string, file io.Reader) error {
 }
 
 func (s S3Backend) createSession(bucket string) *session.Session {
-	params := s.params
-	params["bucket"] = bucket
-	c := S3Cache.Get(params)
+	newParams := map[string]string{"bucket": bucket}
+	for k, v := range s.params {
+		newParams[k] = v
+	}
+	c := S3Cache.Get(newParams)
 	if c == nil {
 		res, err := s.client.GetBucketLocation(&s3.GetBucketLocationInput{
 			Bucket: aws.String(bucket),
@@ -449,7 +489,7 @@ func (s S3Backend) createSession(bucket string) *session.Session {
 				s.config.Region = res.LocationConstraint
 			}
 		}
-		S3Cache.Set(params, s.config.Region)
+		S3Cache.Set(newParams, s.config.Region)
 	} else {
 		s.config.Region = c.(*string)
 	}

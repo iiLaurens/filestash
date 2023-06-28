@@ -2,6 +2,7 @@ package ctrl
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -17,9 +18,10 @@ import (
 )
 
 type Session struct {
-	Home    *string `json:"home,omitempty"`
-	IsAuth  bool    `json:"is_authenticated"`
-	Backend string  `json:"backendID"`
+	Home          *string `json:"home,omitempty"`
+	IsAuth        bool    `json:"is_authenticated"`
+	Backend       string  `json:"backendID"`
+	Authorization string  `json:"authorization,omitempty"`
 }
 
 func SessionGet(ctx *App, res http.ResponseWriter, req *http.Request) {
@@ -40,6 +42,9 @@ func SessionGet(ctx *App, res http.ResponseWriter, req *http.Request) {
 	r.IsAuth = true
 	r.Home = NewString(home)
 	r.Backend = GenerateID(ctx)
+	if ctx.Share.Id == "" && Config.Get("features.protection.enable_chromecast").Bool() {
+		r.Authorization = ctx.Authorization
+	}
 	SendSuccessResult(res, r)
 }
 
@@ -282,7 +287,7 @@ func SessionAuthMiddleware(ctx *App, res http.ResponseWriter, req *http.Request)
 		if label := _get.Get("label"); label != "" {
 			http.SetCookie(res, &http.Cookie{
 				Name:     SSOCookieName,
-				Value:    label,
+				Value:    label + "::" + _get.Get("state"),
 				MaxAge:   60 * 10,
 				Path:     COOKIE_PATH,
 				HttpOnly: true,
@@ -326,12 +331,29 @@ func SessionAuthMiddleware(ctx *App, res http.ResponseWriter, req *http.Request)
 	}
 	templateBind["machine_id"] = GenerateMachineID()
 
+	cookieLabel := ""
+	if refCookie, err := req.Cookie(SSOCookieName); err == nil {
+		s := strings.SplitN(refCookie.Value, "::", 2)
+		switch len(s) {
+		case 1:
+			cookieLabel = s[0]
+		case 2:
+			cookieLabel = s[0]
+			if decodedState, err := base64.StdEncoding.DecodeString(s[1]); err == nil {
+				cookieState := map[string]string{}
+				json.Unmarshal(decodedState, &cookieState)
+				for key, value := range cookieState {
+					if templateBind[key] != "" {
+						continue
+					}
+					templateBind[key] = value
+				}
+			}
+		}
+	}
+
 	// Step3: create a backend connection object
 	session, err := func(tb map[string]string) (map[string]string, error) {
-		refCookie, err := req.Cookie(SSOCookieName)
-		if err != nil {
-			return map[string]string{}, err
-		}
 		globalMapping := map[string]map[string]interface{}{}
 		if err = json.Unmarshal(
 			[]byte(Config.Get("middleware.attribute_mapping.params").String()),
@@ -341,7 +363,7 @@ func SessionAuthMiddleware(ctx *App, res http.ResponseWriter, req *http.Request)
 			return map[string]string{}, err
 		}
 		mappingToUse := map[string]string{}
-		for k, v := range globalMapping[refCookie.Value] {
+		for k, v := range globalMapping[cookieLabel] {
 			str := NewStringFromInterface(v)
 			if str == "" {
 				continue
@@ -385,11 +407,11 @@ func SessionAuthMiddleware(ctx *App, res http.ResponseWriter, req *http.Request)
 
 	if _, err := model.NewBackend(ctx, session); err != nil {
 		Log.Debug("session::authMiddleware 'backend connection failed %+v - %s'", session, err.Error())
-		http.Redirect(
-			res, req,
-			"/?error=Not%20Valid&trace=backend error - "+err.Error(),
-			http.StatusTemporaryRedirect,
-		)
+		url := "/?error=" + ErrNotValid.Error() + "&trace=backend error - " + err.Error()
+		if IsATranslatedError(err) {
+			url = "/?error=" + err.Error()
+		}
+		http.Redirect(res, req, url, http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -422,5 +444,9 @@ func SessionAuthMiddleware(ctx *App, res http.ResponseWriter, req *http.Request)
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
-	http.Redirect(res, req, "/", http.StatusTemporaryRedirect)
+	redirectURI := templateBind["next"]
+	if redirectURI == "" {
+		redirectURI = "/"
+	}
+	http.Redirect(res, req, redirectURI, http.StatusTemporaryRedirect)
 }

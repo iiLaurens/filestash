@@ -2,6 +2,7 @@ package ctrl
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	. "github.com/mickael-kerjean/filestash/server/common"
 	"io"
@@ -9,7 +10,6 @@ import (
 	"net/http"
 	URL "net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"text/template"
@@ -155,8 +155,8 @@ func AboutHandler(ctx *App, res http.ResponseWriter, req *http.Request) {
 		Version:    fmt.Sprintf("Filestash %s.%s", APP_VERSION, BUILD_DATE),
 		CommitHash: BUILD_REF,
 		Checksum: []string{
-			hashFileContent(filepath.Join(GetCurrentDir(), "/filestash"), 0),
-			hashFileContent(filepath.Join(GetCurrentDir(), CONFIG_PATH, "config.json"), 0),
+			hashFileContent(GetAbsolutePath("filestash"), 0),
+			hashFileContent(GetAbsolutePath(CONFIG_PATH, "config.json"), 0),
 		},
 		License: strings.ToUpper(LICENSE),
 		Plugins: []string{
@@ -168,7 +168,7 @@ func AboutHandler(ctx *App, res http.ResponseWriter, req *http.Request) {
 }
 
 func ManifestHandler(ctx *App, res http.ResponseWriter, req *http.Request) {
-	res.WriteHeader(http.StatusFound)
+	res.WriteHeader(http.StatusOK)
 	res.Write([]byte(fmt.Sprintf(`{
     "name": "%s",
     "short_name": "%s",
@@ -194,6 +194,64 @@ func ManifestHandler(ctx *App, res http.ResponseWriter, req *http.Request) {
 
 func RobotsHandler(ctx *App, res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte(""))
+}
+
+func CustomCssHandler(ctx *App, res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "text/css")
+	io.WriteString(res, Hooks.Get.CSS())
+	io.WriteString(res, Config.Get("general.custom_css").String())
+}
+
+func ServeFile(res http.ResponseWriter, req *http.Request, filePath string) {
+	staticConfig := []struct {
+		ContentType string
+		FileExt     string
+	}{
+		{"br", ".br"},
+		{"gzip", ".gz"},
+		{"", ""},
+	}
+
+	statusCode := 200
+	if req.URL.Path == "/" {
+		if errName := req.URL.Query().Get("error"); errName != "" {
+			statusCode = HTTPError(errors.New(errName)).Status()
+		}
+	}
+
+	head := res.Header()
+	acceptEncoding := req.Header.Get("Accept-Encoding")
+	for _, cfg := range staticConfig {
+		if strings.Contains(acceptEncoding, cfg.ContentType) == false {
+			continue
+		}
+		curPath := filePath + cfg.FileExt
+		file, err := WWWEmbed.Open("static/www" + curPath)
+		if env := os.Getenv("NODE_ENV"); env == "development" {
+			file, err = WWWDir.Open("server/ctrl/static/www" + curPath)
+		}
+		if err != nil {
+			continue
+		} else if stat, err := file.Stat(); err == nil {
+			etag := QuickHash(fmt.Sprintf(
+				"%s %d %d %s",
+				curPath, stat.Size(), stat.Mode(), stat.ModTime()), 10,
+			)
+			if etag == req.Header.Get("If-None-Match") {
+				res.WriteHeader(http.StatusNotModified)
+				return
+			}
+			head.Set("Etag", etag)
+		}
+		if cfg.ContentType != "" {
+			head.Set("Content-Encoding", cfg.ContentType)
+		}
+		res.WriteHeader(statusCode)
+		io.Copy(res, file)
+		file.Close()
+		return
+	}
+	http.NotFound(res, req)
 }
 
 func InitPluginList(code []byte) {
@@ -225,54 +283,4 @@ func InitPluginList(code []byte) {
 			)
 		}
 	}
-}
-
-func CustomCssHandler(ctx *App, res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-Type", "text/css")
-	io.WriteString(res, Hooks.Get.CSS())
-	io.WriteString(res, Config.Get("general.custom_css").String())
-}
-
-func ServeFile(res http.ResponseWriter, req *http.Request, filePath string) {
-	staticConfig := []struct {
-		ContentType string
-		FileExt     string
-	}{
-		{"br", ".br"},
-		{"gzip", ".gz"},
-		{"", ""},
-	}
-
-	head := res.Header()
-	acceptEncoding := req.Header.Get("Accept-Encoding")
-	for _, cfg := range staticConfig {
-		if strings.Contains(acceptEncoding, cfg.ContentType) == false {
-			continue
-		}
-		curPath := filePath + cfg.FileExt
-		file, err := WWWEmbed.Open("static/www" + curPath)
-		if env := os.Getenv("NODE_ENV"); env == "development" {
-			file, err = WWWDir.Open("server/ctrl/static/www" + curPath)
-		}
-		if err != nil {
-			continue
-		} else if stat, err := file.Stat(); err == nil {
-			etag := QuickHash(fmt.Sprintf(
-				"%s %d %d %s",
-				curPath, stat.Size(), stat.Mode(), stat.ModTime()), 10,
-			)
-			if etag == req.Header.Get("If-None-Match") {
-				res.WriteHeader(http.StatusNotModified)
-				return
-			}
-			head.Set("Etag", etag)
-		}
-		if cfg.ContentType != "" {
-			head.Set("Content-Encoding", cfg.ContentType)
-		}
-		io.Copy(res, file)
-		file.Close()
-		return
-	}
-	http.NotFound(res, req)
 }

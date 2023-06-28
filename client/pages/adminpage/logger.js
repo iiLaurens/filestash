@@ -9,7 +9,7 @@ import "./logger.scss";
 export function LogPage({ isSaving = nop }) {
 
     return (
-        <div className="component_logpage">
+        <div className="component_logpage sticky">
             <h2>Logging</h2>
             <LogComponent isSaving={isSaving} />
 
@@ -107,6 +107,7 @@ function LogComponent({ isSaving }) {
                     <Button className="primary">Download</Button>
                 </a>
             </div>
+            <br/><br/>
         </React.Fragment>
     );
 }

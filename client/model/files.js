@@ -2,7 +2,7 @@
 
 import {
     http_get, http_post, http_options, prepare, basename, dirname, pathBuilder,
-    currentShare, currentBackend, appendShareToUrl,
+    filetype, currentShare, currentBackend, appendShareToUrl,
 } from "../helpers/";
 
 import { Observable } from "rxjs/Observable";
@@ -89,9 +89,6 @@ class FileSystem {
                 return Promise.resolve(null);
             });
         }).catch((_err) => {
-            if (_err.code === "Unauthorized") {
-                location = "/login?next=" + location.pathname;
-            }
             this.obs.next(_err);
             return Promise.reject(_err);
         });
@@ -178,11 +175,23 @@ class FileSystem {
     }
 
     zip(paths) {
-        const url = appendShareToUrl(
-            "/api/files/zip?" + paths.map((p) => "path=" + prepare(p)).join("&"),
-        );
+        let url = appendShareToUrl("/api/files/zip?" + paths.map((p) => "path=" + prepare(p)).join("&"));
+        if (paths.length === 1 && filetype(paths[0]) === "file") {
+            url = appendShareToUrl("/api/files/cat?path=" + prepare(paths[0]) + "&name=" + basename(paths[0]));
+        }
         window.open(url);
         return Promise.resolve();
+    }
+    unzip(paths, signal) {
+        const url = appendShareToUrl(
+            "/api/files/unzip?" + paths.map((p) => "path=" + prepare(p)).join("&"),
+        );
+        return fetch(url, { signal, method: "POST" }).then((r) => {
+            if (r.ok) return r.json();
+            return r.json().then((err) => {
+                throw new Error(err.message);
+            });
+        });
     }
 
     options(path) {
@@ -267,13 +276,10 @@ class FileSystem {
                 });
         };
 
-
-        if (step === "prepare_only") {
-            return action_prepare(true);
-        } else if (step === "execute_only") {
-            return action_execute(true);
-        } else {
-            return action_prepare().then(action_execute);
+        switch(step) {
+        case "prepare_only": return action_prepare(true);
+        case "execute_only": return action_execute(true);
+        default: return action_prepare().then(action_execute);
         }
     }
 
@@ -287,8 +293,7 @@ class FileSystem {
                     .then(() => this._refresh(destination_path));
             } else {
                 return this._add(destination_path, "loading")
-                    .then(() => origin_path !== destination_path ?
-                        this._add(origin_path, "loading") : Promise.resolve())
+                    .then(() => origin_path !== destination_path ? this._add(origin_path, "loading") : Promise.resolve())
                     .then(() => this._refresh(origin_path, destination_path));
             }
         };
@@ -333,12 +338,10 @@ class FileSystem {
             }
         };
 
-        if (step === "prepare_only") {
-            return action_prepare(true);
-        } else if (step === "execute_only") {
-            return action_execute(true);
-        } else {
-            return action_prepare().then(action_execute);
+        switch(step) {
+        case "prepare_only": return action_prepare(true);
+        case "execute_only": return action_execute(true);
+        default: return action_prepare().then(action_execute);
         }
     }
 
@@ -458,9 +461,16 @@ class FileSystem {
     }
     _add(path, icon) {
         return cache.upsert(cache.FILE_PATH, [currentBackend(), currentShare(), dirname(path)], (res) => {
+            const file = mutateFile({
+                path: path,
+                name: basename(path),
+                type: filetype(path),
+            }, path);
+            if (icon) file.icon = icon;
+
             if (!res || !res.results) {
                 res = {
-                    path: path,
+                    path: dirname(path),
                     backend: currentBackend(),
                     share: currentShare(),
                     results: [],
@@ -468,13 +478,10 @@ class FileSystem {
                     last_access: null,
                     last_update: new Date(),
                 };
+                if (file.type === "directory") {
+                    return res;
+                }
             }
-            const file = mutateFile({
-                path: path,
-                name: basename(path),
-                type: /\/$/.test(path) ? "directory" : "file",
-            }, path);
-            if (icon) file.icon = icon;
             res.results.push(file);
             return res;
         });
