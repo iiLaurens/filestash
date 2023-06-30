@@ -79,6 +79,8 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 		"-vcodec", "libwebp",
 		"pipe:1")
 
+	Log.Debug("plg_video_thumbnail:ffmpeg::cmd %s", cmd.String())
+
 	cmd.Stderr = &str
 	cmd.Stdout = &buf
 	if err := cmd.Run(); err != nil {
