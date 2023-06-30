@@ -70,7 +70,6 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 		"-itsscale", strconv.FormatFloat(5.0/duration, 'g', 6, 64),
 		"-i", f.Name(),
 		"-vf", "scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)',fps=2",
-		"-frames:v", "1",
 		"-f", "image2pipe",
 		"-lossless", "0",
 		"-compression_level", "6",
