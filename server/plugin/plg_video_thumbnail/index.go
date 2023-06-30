@@ -44,7 +44,7 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 	return r, nil
 }
 
-func generateThumbnailFromVideo(reader io.ReadCloser, ext String) (io.ReadCloser, error) {
+func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser, error) {
 	var buf bytes.Buffer
 	var str bytes.Buffer
 
