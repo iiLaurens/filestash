@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os/exec"
 	"os"
+	"strings"
+	"strconv"
 	. "github.com/mickael-kerjean/filestash/server/common"
 )
 
@@ -59,7 +61,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	bitrate, duration, err = getVideoDetails(f.Name())
+	bitrate, duration, err := getVideoDetails(f.Name())
 	
 	cmd := exec.Command("ffmpeg",
 		"-ss", "10",
@@ -97,7 +99,7 @@ func getVideoDetails(inputName string) (bitrate int64, duration float64, err err
 	if err := cmd.Run(); err != nil {
 		Log.Debug("plg_video_thumbnail::ffmpeg::probe %s", str.String())
 		Log.Error("plg_video_thumbnail::ffmpeg::probe %s", err.Error())
-		return nil, err
+		return nil, nil, err
 	}
 
 	return parseFfprobeOutput(buf.String())
