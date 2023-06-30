@@ -78,7 +78,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 		"-loop", "0",
 		"-an",
 		"-preset", "picture"
-		"-vcodec", "libwebp ",
+		"-vcodec", "libwebp",
 		"pipe:1")
 
 	cmd.Stderr = &str
