@@ -14,6 +14,10 @@ import (
 var placeholder []byte
 
 func init() {
+	err := os.MkdirAll("/tmp/videos/", os.ModePerm)
+	if err != nil {
+		Log.Error("plg_video_thumbnail::init %s", err.Error())
+	}
 	Hooks.Register.Thumbnailer("video/mp4", thumbnailBuilder{thumbnailMp4})
 }
 
