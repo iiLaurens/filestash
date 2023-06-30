@@ -34,7 +34,7 @@ func (this thumbnailBuilder) Generate(reader io.ReadCloser, ctx *App, res *http.
 
 func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
 	h := (*res).Header()
-	r, err := generateThumbnailFromVideo(reader)
+	r, err := generateThumbnailFromVideo(reader, "mp4")
 	if err != nil {
 		h.Set("Content-Type", "image/png")
 		return NewReadCloserFromBytes(placeholder), nil
@@ -44,11 +44,11 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 	return r, nil
 }
 
-func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
+func generateThumbnailFromVideo(reader io.ReadCloser, ext String) (io.ReadCloser, error) {
 	var buf bytes.Buffer
 	var str bytes.Buffer
 
-	f, err := os.CreateTemp("/tmp/videos/", "vid")
+	f, err := os.CreateTemp("/tmp/videos/", "vid_*")
 	if err != nil {
 		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
 		return nil, err
@@ -68,6 +68,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 	
 	cmd := exec.Command("ffmpeg",
 		"-itsscale", strconv.FormatFloat(5.0/duration, 'g', 6, 64),
+		"-f", ext,
 		"-i", f.Name(),
 		"-vf", "scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)',fps=2",
 		"-f", "webp",
