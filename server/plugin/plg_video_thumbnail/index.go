@@ -77,7 +77,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 		"-compression_level", "6",
 		"-loop", "0",
 		"-an",
-		"-preset", "picture"
+		"-preset", "picture",
 		"-vcodec", "libwebp",
 		"pipe:1")
 
