@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 	"strconv"
-	"math"
 	. "github.com/mickael-kerjean/filestash/server/common"
 )
 
@@ -72,7 +71,6 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 		return nil, err
 	}
 	f.Close()
-	defer os.Remove(f.Name())
 	
 	cmd := exec.Command("ffmpeg",
 		"-itsscale", strconv.FormatFloat(5.0/duration, 'g', 6, 64),
@@ -92,14 +90,15 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 	Log.Debug("plg_video_thumbnail:ffmpeg::cmd %s", cmd.String())
 
 	cmd.Stderr = &str
-	output, _ := os.OpenFile(f.Name(), os.O_RDONLY, os.ModePerm)
 	if err := cmd.Run(); err != nil {
 		Log.Debug("plg_video_thumbnail::ffmpeg::stderr %s", str.String())
 		Log.Error("plg_video_thumbnail::ffmpeg::run %s", err.Error())
 		return nil, err
 	}
 
-	return output, nil
+	data, _ := os.ReadFile(f.Name())
+	os.Remove(f.Name())
+	return NewReadCloserFromBytes(data), nil
 }
 
 
