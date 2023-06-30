@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/iilaurens/filestash/server/common"
-	"github.com/iilaurens/filestash/server/model"
+	. "github.com/mickael-kerjean/filestash/server/common"
+	"github.com/mickael-kerjean/filestash/server/model"
 )
 
 type FileInfo struct {

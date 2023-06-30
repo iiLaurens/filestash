@@ -11,7 +11,7 @@ package plg_backend_ldap
 import (
 	"encoding/json"
 	"fmt"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"gopkg.in/ldap.v3"
 	"io"
 	"os"

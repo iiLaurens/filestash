@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )

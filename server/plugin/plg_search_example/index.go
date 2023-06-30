@@ -1,7 +1,7 @@
 package plg_search_example
 
 import (
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 )
 
 func init() {

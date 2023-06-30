@@ -2,7 +2,7 @@ package plg_search_stateless
 
 import (
 	"fmt"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"time"
 )
 

@@ -23,8 +23,8 @@ import (
 	xrv "github.com/mattermost/xml-roundtrip-validator"
 	dsig "github.com/russellhaering/goxmldsig"
 
-	"github.com/iilaurens/saml/logger"
-	"github.com/iilaurens/saml/xmlenc"
+	"github.com/mickael-kerjean/saml/logger"
+	"github.com/mickael-kerjean/saml/xmlenc"
 )
 
 // Session represents a user session. It is returned by the

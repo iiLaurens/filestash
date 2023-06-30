@@ -1,8 +1,8 @@
-![screenshot](https://raw.githubusercontent.com/iilaurens/filestash_images/master/.assets/photo.jpg)
+![screenshot](https://raw.githubusercontent.com/mickael-kerjean/filestash_images/master/.assets/photo.jpg)
 
 <p align="center">
-    <a href="https://github.com/iilaurens/contributors" alt="Contributors">
-        <img src="https://img.shields.io/github/contributors/iilaurens/filestash" style="max-width:100%;">
+    <a href="https://github.com/mickael-kerjean/contributors" alt="Contributors">
+        <img src="https://img.shields.io/github/contributors/mickael-kerjean/filestash" style="max-width:100%;">
     </a>
     <a href="https://opencollective.com/filestash" alt="Backers on Open Collective">
         <img src="https://img.shields.io/opencollective/backers/filestash" style="max-width:100%;">
@@ -15,7 +15,7 @@
     </a>
     <br>
     <a href="#" alt="Build">
-        <img src="https://github.com/iilaurens/filestash/actions/workflows/ci.yml/badge.svg" style="max-width:100%;">
+        <img src="https://github.com/mickael-kerjean/filestash/actions/workflows/ci.yml/badge.svg" style="max-width:100%;">
     </a>
     <a href="https://kiwiirc.com/nextclient/#irc://irc.libera.chat/#filestash?nick=guest??" alt="Chat on IRC">
         <img src="https://img.shields.io/badge/IRC-%23filestash-brightgreen.svg" style="max-width:100%;">
@@ -30,7 +30,7 @@
 </p>
 <p align="center">
     <a href="http://demo.filestash.app">
-      <img src="https://raw.githubusercontent.com/iilaurens/filestash_images/master/.assets/button_demo.png" alt="demo button" />
+      <img src="https://raw.githubusercontent.com/mickael-kerjean/filestash_images/master/.assets/button_demo.png" alt="demo button" />
     </a>
 </p>
 
@@ -70,12 +70,12 @@
 # Screenshots
 <p align="center">
     <a href="https://demo.filestash.app">
-        <img src="https://raw.githubusercontent.com/iilaurens/filestash_images/master/.assets/navigation.gif" alt="user experience on navigation" />
+        <img src="https://raw.githubusercontent.com/mickael-kerjean/filestash_images/master/.assets/navigation.gif" alt="user experience on navigation" />
     </a>
 </p>
 <p align="center">
     <a href="http://demo.filestash.app">
-        <img src="https://raw.githubusercontent.com/iilaurens/filestash_images/master/.assets/photo_management.gif" alt="user experience on medias" />
+        <img src="https://raw.githubusercontent.com/mickael-kerjean/filestash_images/master/.assets/photo_management.gif" alt="user experience on medias" />
     </a>
 </p>
 
@@ -110,6 +110,6 @@ Some outside the box example of this "filesystem as a framework" ideas we've don
   - [Open Collective](https://opencollective.com/filestash)
 
 # Credits
-- [Contributors](https://github.com/iilaurens/filestash/graphs/contributors) and folks developing [awesome libraries](https://github.com/iilaurens/filestash/blob/master/go.mod)
+- [Contributors](https://github.com/mickael-kerjean/filestash/graphs/contributors) and folks developing [awesome libraries](https://github.com/mickael-kerjean/filestash/blob/master/go.mod)
 - Logo derived from the work of [ssnjrthegr8](https://github.com/ssnjrthegr8), Iconography from [flaticon](https://www.flaticon.com/), [fontawesome](https://fontawesome.com) and [material](https://material.io/icons/)
-- [libvips](https://github.com/libvips/libvips) and [libraw](https://github.com/LibRaw/LibRaw). Those libraries are statically compiled in Filestash. Instructions to build Filestash is available [here](https://github.com/iilaurens/filestash/blob/master/.drone.yml) and instructions to create your own static library for libvips and libraw is to be found [here](https://github.com/iilaurens/filestash/tree/master/server/plugin/plg_image_light/deps)
+- [libvips](https://github.com/libvips/libvips) and [libraw](https://github.com/LibRaw/LibRaw). Those libraries are statically compiled in Filestash. Instructions to build Filestash is available [here](https://github.com/mickael-kerjean/filestash/blob/master/.drone.yml) and instructions to create your own static library for libvips and libraw is to be found [here](https://github.com/mickael-kerjean/filestash/tree/master/server/plugin/plg_image_light/deps)

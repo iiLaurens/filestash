@@ -2,7 +2,7 @@ package model
 
 import (
 	"fmt"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"strings"
 )
 

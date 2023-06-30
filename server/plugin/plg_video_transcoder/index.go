@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
+	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/middleware"
 	"io"
 	"math"
 	"net/http"
@@ -12,10 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/gorilla/mux"
-	. "github.com/iilaurens/filestash/server/common"
-	. "github.com/iilaurens/filestash/server/middleware"
 )
 
 const (

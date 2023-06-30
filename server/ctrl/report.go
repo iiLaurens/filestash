@@ -2,7 +2,7 @@ package ctrl
 
 import (
 	"fmt"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"net/http"
 	"os"
 )

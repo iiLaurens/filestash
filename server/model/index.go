@@ -2,7 +2,7 @@ package model
 
 import (
 	"database/sql"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	_ "modernc.org/sqlite"
 	"os"
 	"time"

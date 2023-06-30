@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 
-	"github.com/iilaurens/saml"
+	"github.com/mickael-kerjean/saml"
 )
 
 const (

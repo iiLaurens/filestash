@@ -1,7 +1,7 @@
 package plg_image_transcode
 
 import (
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
 	"image"

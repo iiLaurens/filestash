@@ -2,7 +2,7 @@ package plg_backend_storj
 
 import (
 	"context"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"golang.org/x/sync/semaphore"
 	"io"
 	"os"

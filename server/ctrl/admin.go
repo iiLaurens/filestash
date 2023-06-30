@@ -2,7 +2,7 @@ package ctrl
 
 import (
 	"encoding/json"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"golang.org/x/crypto/bcrypt"
 	"io"
 	"io/ioutil"

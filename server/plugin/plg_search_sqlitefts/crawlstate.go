@@ -2,7 +2,7 @@ package plg_search_sqlitefts
 
 import (
 	"container/heap"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"path/filepath"
 	"sync"
 )

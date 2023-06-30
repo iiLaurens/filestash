@@ -150,10 +150,10 @@ github.com/mattn/go-isatty v0.0.16 h1:bq3VjFmv/sOjHtdEhmkEV4x1AJtvUvOJ2PFAZ5+peK
 github.com/mattn/go-isatty v0.0.16/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=
 github.com/mattn/go-sqlite3 v2.0.2+incompatible h1:qzw9c2GNT8UFrgWNDhCTqRqYUSmu/Dav/9Z58LGpk7U=
 github.com/mattn/go-sqlite3 v2.0.2+incompatible/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
-github.com/iilaurens/net v0.0.0-20191120063050-2457c043ba06 h1:427Mpu5edwuFuDBdqOm6EgRohYqZ9Oomd+87ryW2Uls=
-github.com/iilaurens/net v0.0.0-20191120063050-2457c043ba06/go.mod h1:K5atEXcXMSGE5O2cPGjggOqCb5lKRaieqgNJHEwS/IE=
-github.com/iilaurens/saml v0.0.0-20221221152539-19783715740c h1:BywEyUDqL4Igi3BjEP0IYcITl6KHkoa9zxX+FMeLbyM=
-github.com/iilaurens/saml v0.0.0-20221221152539-19783715740c/go.mod h1:T3cV0zW4ocnA2MxG38wwYPCmJ9OXo8NbTOCY6RFnLBc=
+github.com/mickael-kerjean/net v0.0.0-20191120063050-2457c043ba06 h1:427Mpu5edwuFuDBdqOm6EgRohYqZ9Oomd+87ryW2Uls=
+github.com/mickael-kerjean/net v0.0.0-20191120063050-2457c043ba06/go.mod h1:K5atEXcXMSGE5O2cPGjggOqCb5lKRaieqgNJHEwS/IE=
+github.com/mickael-kerjean/saml v0.0.0-20221221152539-19783715740c h1:BywEyUDqL4Igi3BjEP0IYcITl6KHkoa9zxX+FMeLbyM=
+github.com/mickael-kerjean/saml v0.0.0-20221221152539-19783715740c/go.mod h1:T3cV0zW4ocnA2MxG38wwYPCmJ9OXo8NbTOCY6RFnLBc=
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/hashstructure v1.0.0 h1:ZkRJX1CyOoTkar7p/mLS5TZU4nJ1Rn/F8u9dGS02Q3Y=

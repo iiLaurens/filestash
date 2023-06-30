@@ -1,7 +1,7 @@
 package ctrl
 
 import (
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"io/ioutil"
 	"net/http"
 )

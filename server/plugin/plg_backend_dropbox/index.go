@@ -2,7 +2,7 @@ package plg_backend_dropbox
 
 import (
 	"encoding/json"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"io"
 	"io/ioutil"
 	"net/http"

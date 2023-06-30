@@ -1,7 +1,7 @@
 package plg_authenticate_openid
 
 import (
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"net/http"
 )
 

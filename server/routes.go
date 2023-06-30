@@ -11,9 +11,9 @@ import (
 
 	"github.com/gorilla/mux"
 
-	. "github.com/iilaurens/filestash/server/common"
-	. "github.com/iilaurens/filestash/server/ctrl"
-	. "github.com/iilaurens/filestash/server/middleware"
+	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/ctrl"
+	. "github.com/mickael-kerjean/filestash/server/middleware"
 )
 
 func Build(a App) *mux.Router {

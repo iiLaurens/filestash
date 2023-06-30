@@ -1,7 +1,7 @@
 package plg_security_svg
 
 import (
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"io"
 	"io/ioutil"
 	"net/http"

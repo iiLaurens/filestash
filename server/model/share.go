@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"encoding/json"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/gomail.v2"
 	"html/template"
@@ -615,7 +615,7 @@ func TmplEmailVerification() string {
               <table border="0" cellpadding="0" cellspacing="0">
                 <tr>
                   <td class="content-block powered-by">
-                    Powered by <a href="http://github.com/iilaurens/filestash">Filestash</a>.
+                    Powered by <a href="http://github.com/mickael-kerjean/filestash">Filestash</a>.
                   </td>
                 </tr>
               </table>

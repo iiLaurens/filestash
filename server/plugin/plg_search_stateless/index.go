@@ -1,7 +1,7 @@
 package plg_search_stateless
 
 import (
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"path/filepath"
 	"strings"
 	"time"

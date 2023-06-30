@@ -7,10 +7,10 @@ import (
 
 	"github.com/gorilla/mux"
 
-	. "github.com/iilaurens/filestash/server"
-	. "github.com/iilaurens/filestash/server/common"
-	. "github.com/iilaurens/filestash/server/ctrl"
-	_ "github.com/iilaurens/filestash/server/plugin"
+	. "github.com/mickael-kerjean/filestash/server"
+	. "github.com/mickael-kerjean/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/ctrl"
+	_ "github.com/mickael-kerjean/filestash/server/plugin"
 )
 
 //go:embed server/plugin/index.go

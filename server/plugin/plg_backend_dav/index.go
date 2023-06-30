@@ -3,7 +3,7 @@ package plg_backend_dav
 import (
 	"encoding/xml"
 	"fmt"
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"io"
 	"io/ioutil"
 	"net/http"

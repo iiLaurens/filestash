@@ -1,7 +1,7 @@
 package plg_authenticate_ldap
 
 import (
-	. "github.com/iilaurens/filestash/server/common"
+	. "github.com/mickael-kerjean/filestash/server/common"
 	"net/http"
 )
 
