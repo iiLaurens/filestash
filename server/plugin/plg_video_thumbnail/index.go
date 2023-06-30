@@ -100,7 +100,7 @@ func getVideoDetails(inputName string) (bitrate int64, duration float64, err err
 		return nil, err
 	}
 
-	return parseFfprobeOutput(buffer.String())
+	return parseFfprobeOutput(buf.String())
 }
 
 func parseFfprobeOutput(raw string) (bitrate int64, duration float64, err error) {
