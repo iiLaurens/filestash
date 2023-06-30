@@ -61,8 +61,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	bitrate, duration, err := getVideoDetails(f.Name())
-	Log.Debug("%s %s", bitrate, duration)
+	duration, err := getVideoDetails(f.Name())
 	if err != nil {
 		return nil, err
 	}
