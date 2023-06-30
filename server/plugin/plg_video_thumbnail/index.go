@@ -48,7 +48,7 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser, error) {
 	var str bytes.Buffer
 
-	f, err := os.CreateTemp("/tmp/videos/", "vid_*")
+	f, err := os.CreateTemp("/tmp/videos/", "vid_*." + ext)
 	if err != nil {
 		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
 		return nil, err
@@ -65,13 +65,6 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 	if err != nil {
 		return nil, err
 	}
-
-	f, err = os.CreateTemp("/tmp/videos/", "webp_*")
-	if err != nil {
-		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
-		return nil, err
-	}
-	f.Close()
 	
 	cmd := exec.Command("ffmpeg",
 		"-itsscale", strconv.FormatFloat(math.Min(5.0/duration, 1), 'g', 6, 64),
@@ -85,8 +78,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 		"-an",
 		"-preset", "picture",
 		"-vcodec", "libwebp",
-		"-y",
-		f.Name())
+		strings.Replace(f.Name(), "." + ext, ".webp", 1))
 
 	Log.Debug("plg_video_thumbnail:ffmpeg::cmd %s", cmd.String())
 
@@ -98,7 +90,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 	}
 
 	data, _ := os.ReadFile(f.Name())
-	os.Remove(f.Name())
+	// os.Remove(strings.Replace(f.Name(), "." + ext, ".webp", 1))
 	return NewReadCloserFromBytes(data), nil
 }
 
