@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
+	"os"
 	. "github.com/iilaurens/filestash/server/common"
 )
 
