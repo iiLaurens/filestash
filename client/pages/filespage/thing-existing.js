@@ -168,7 +168,7 @@ class ExistingThingComponent extends React.Component {
             if (window.CONFIG.thumbnailer.indexOf(mimetype) !== -1) {
                 Files.url(props.file.path).then((url) => {
                     this.setState({ 
-                        preview: url+"&thumbnail=true",
+                        preview: url.replace('/cat?', '/thumbnail?'),
                         previewType: mimetype.split("/")[0],
                     });
                 });
