@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"strconv"
+	"math"
 	. "github.com/mickael-kerjean/filestash/server/common"
 )
 
@@ -73,7 +74,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 	f.Close()
 	
 	cmd := exec.Command("ffmpeg",
-		"-itsscale", strconv.FormatFloat(5.0/duration, 'g', 6, 64),
+		"-itsscale", strconv.FormatFloat(math.Min(5.0/duration, 1), 'g', 6, 64),
 		"-f", ext,
 		"-i", f.Name(),
 		"-vf", "scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)',fps=2",
