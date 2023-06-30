@@ -8,7 +8,7 @@ RUN apk add git && \
 FROM node:18-alpine AS builder_frontend
 WORKDIR /home/
 COPY --from=builder_prepare /home/filestash/ ./
-RUN apk add make git ssh && \
+RUN apk add make git && \
     npm install --legacy-peer-deps && \
     make build_frontend
 
