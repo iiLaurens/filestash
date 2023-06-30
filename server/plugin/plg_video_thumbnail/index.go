@@ -47,7 +47,16 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 	var str bytes.Buffer
 
 	f, err := os.CreateTemp("/tmp/videos/", "vid")
+	if err != nil {
+		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
+		return nil, err
+	}
+
 	_, err = io.Copy(f, reader)
+	if err != nil {
+		Log.Error("plg_video_thumbnail::tmpfile::copy %s", err.Error())
+		return nil, err
+	}
 	// defer os.Remove(f.Name())
 
 	cmd := exec.Command("ffmpeg",
