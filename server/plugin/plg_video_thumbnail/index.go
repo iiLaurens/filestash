@@ -51,14 +51,16 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
 		return nil, err
 	}
+	defer os.Remove(f.Name())
 
 	_, err = io.Copy(f, reader)
 	if err != nil {
 		Log.Error("plg_video_thumbnail::tmpfile::copy %s", err.Error())
 		return nil, err
 	}
-	// defer os.Remove(f.Name())
 
+	bitrate, duration, err = getVideoDetails(f.Name())
+	
 	cmd := exec.Command("ffmpeg",
 		"-ss", "10",
 		"-i", f.Name(),
@@ -68,7 +70,6 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 		"-vcodec", "png",
 		"pipe:1")
 
-	cmd.Stdin = reader
 	cmd.Stderr = &str
 	cmd.Stdout = &buf
 	if err := cmd.Run(); err != nil {
@@ -80,49 +81,52 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 }
 
 
-// func getVideoDetails(inputName string) (bitrate int64, duration float64, err error) {
-// 	var buf bytes.Buffer
-// 	var str bytes.Buffer
-// 
-// 	cmd := exec.Command("ffprobe", 
-// 	"-v", "error",
-// 	 "-select_streams", "v:0",
-// 	  "-show_entries", "stream=bit_rate:format=duration",
-// 	  "-of", "default=noprint_wrappers=1:nokey=1",
-// 	  inputName)
-// 
-// 	cmd.Stdout = &buf
-// 	cmd.Stderr = &str
-// 
-// 	if err = cmd.Run(); err != nil {
-// 		return 0, 0.0, fmt.Errorf("ffprobe error `%s`: %s", err, buffer.String())
-// 	}
-// 
-// 	return parseFfprobeOutput(buffer.String())
-// }
-// 
-// func parseFfprobeOutput(raw string) (bitrate int64, duration float64, err error) {
-// 	for _, output := range strings.Split(strings.Trim(raw, "\n"), "\n") {
-// 		if bitrate == 0 {
-// 			bitrate, err = strconv.ParseInt(output, 10, 64)
-// 			if err != nil {
-// 				if duration != 0 {
-// 					err = fmt.Errorf("parse bitrate `%s`: %w", output, err)
-// 					return
-// 				}
-// 			} else {
-// 				continue
-// 			}
-// 		}
-// 
-// 		if duration == 0 {
-// 			duration, err = strconv.ParseFloat(output, 64)
-// 			if err != nil && bitrate != 0 {
-// 				err = fmt.Errorf("parse duration `%s`: %w", output, err)
-// 				return
-// 			}
-// 		}
-// 	}
-// 
-// 	return
-// }
+func getVideoDetails(inputName string) (bitrate int64, duration float64, err error) {
+	var buf bytes.Buffer
+	var str bytes.Buffer
+
+	cmd := exec.Command("ffprobe", 
+	"-v", "error",
+	 "-select_streams", "v:0",
+	  "-show_entries", "stream=bit_rate:format=duration",
+	  "-of", "default=noprint_wrappers=1:nokey=1",
+	  inputName)
+
+	cmd.Stderr = &str
+	cmd.Stdout = &buf
+	if err := cmd.Run(); err != nil {
+		Log.Debug("plg_video_thumbnail::ffmpeg::probe %s", str.String())
+		Log.Error("plg_video_thumbnail::ffmpeg::probe %s", err.Error())
+		return nil, err
+	}
+
+	return parseFfprobeOutput(buffer.String())
+}
+
+func parseFfprobeOutput(raw string) (bitrate int64, duration float64, err error) {
+	for _, output := range strings.Split(strings.Trim(raw, "\n"), "\n") {
+		if bitrate == 0 {
+			bitrate, err = strconv.ParseInt(output, 10, 64)
+			if err != nil {
+				if duration != 0 {
+					Log.Debug("plg_video_thumbnail::ffmpeg::probe::parse_bitrate %s", output.String())
+					Log.Error("plg_video_thumbnail::ffmpeg::probe::parse_bitrate %s", err.Error())
+					return
+				}
+			} else {
+				continue
+			}
+		}
+
+		if duration == 0 {
+			duration, err = strconv.ParseFloat(output, 64)
+			if err != nil && bitrate != 0 {
+				Log.Debug("plg_video_thumbnail::ffmpeg::probe::parse_duration %s", output.String())
+				Log.Error("plg_video_thumbnail::ffmpeg::probe::parse_duration %s", err.Error())
+				return
+			}
+		}
+	}
+
+	return
+}
