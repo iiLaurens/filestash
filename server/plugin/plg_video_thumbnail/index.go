@@ -40,7 +40,7 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 		h.Set("Content-Type", "image/png")
 		return NewReadCloserFromBytes(placeholder), nil
 	}
-	h.Set("Content-Type", "image/apng")
+	h.Set("Content-Type", "image/webp")
 	h.Set("Cache-Control", fmt.Sprintf("max-age=%d", 3600*12))
 	return r, nil
 }
@@ -66,28 +66,41 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 	if err != nil {
 		return nil, err
 	}
+
+	f, err = os.CreateTemp("/tmp/videos/", "webp_*")
+	if err != nil {
+		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
+		return nil, err
+	}
+	f.Close()
+	defer os.Remove(f.Name())
 	
 	cmd := exec.Command("ffmpeg",
-		"-itsscale", strconv.FormatFloat(math.Min(5.0/duration, 1), 'g', 6, 64),
+		"-itsscale", strconv.FormatFloat(5.0/duration, 'g', 6, 64),
 		"-f", ext,
 		"-i", f.Name(),
 		"-vf", "scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)',fps=2",
-		"-f", "apng",
-		"-compression_level", "3",
-		"-plays", "0",
+		"-f", "webp",
+		"-lossless", "0",
+		"-compression_level", "6",
+		"-loop", "0",
 		"-an",
-		"pipe:1")
+		"-preset", "picture",
+		"-vcodec", "libwebp",
+		"-y",
+		f.Name())
 
 	Log.Debug("plg_video_thumbnail:ffmpeg::cmd %s", cmd.String())
 
 	cmd.Stderr = &str
-	cmd.Stdout = &buf
+	output, _ := os.OpenFile(f.Name(), os.O_RDONLY, os.ModePerm)
 	if err := cmd.Run(); err != nil {
 		Log.Debug("plg_video_thumbnail::ffmpeg::stderr %s", str.String())
 		Log.Error("plg_video_thumbnail::ffmpeg::run %s", err.Error())
 		return nil, err
 	}
-	return NewReadCloserFromBytes(buf.Bytes()), nil
+
+	return output, nil
 }
 
 
