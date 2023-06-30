@@ -89,7 +89,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 		return nil, err
 	}
 
-	data, _ := os.ReadFile(f.Name())
+	data, _ := os.ReadFile(strings.Replace(f.Name(), "." + ext, ".webp", 1))
 	// os.Remove(strings.Replace(f.Name(), "." + ext, ".webp", 1))
 	return NewReadCloserFromBytes(data), nil
 }
