@@ -62,6 +62,10 @@ func generateThumbnailFromVideo(reader io.ReadCloser) (io.ReadCloser, error) {
 	}
 
 	bitrate, duration, err := getVideoDetails(f.Name())
+	Log.Debug("%s %s", bitrate, duration)
+	if err != nil {
+		return nil, err
+	}
 	
 	cmd := exec.Command("ffmpeg",
 		"-ss", "10",
@@ -99,7 +103,7 @@ func getVideoDetails(inputName string) (bitrate int64, duration float64, err err
 	if err := cmd.Run(); err != nil {
 		Log.Debug("plg_video_thumbnail::ffmpeg::probe %s", str.String())
 		Log.Error("plg_video_thumbnail::ffmpeg::probe %s", err.Error())
-		return nil, nil, err
+		return 0, 0, err
 	}
 
 	return parseFfprobeOutput(buf.String())
@@ -111,7 +115,6 @@ func parseFfprobeOutput(raw string) (bitrate int64, duration float64, err error)
 			bitrate, err = strconv.ParseInt(output, 10, 64)
 			if err != nil {
 				if duration != 0 {
-					Log.Debug("plg_video_thumbnail::ffmpeg::probe::parse_bitrate %s", output.String())
 					Log.Error("plg_video_thumbnail::ffmpeg::probe::parse_bitrate %s", err.Error())
 					return
 				}
@@ -123,7 +126,6 @@ func parseFfprobeOutput(raw string) (bitrate int64, duration float64, err error)
 		if duration == 0 {
 			duration, err = strconv.ParseFloat(output, 64)
 			if err != nil && bitrate != 0 {
-				Log.Debug("plg_video_thumbnail::ffmpeg::probe::parse_duration %s", output.String())
 				Log.Error("plg_video_thumbnail::ffmpeg::probe::parse_duration %s", err.Error())
 				return
 			}
