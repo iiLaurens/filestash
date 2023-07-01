@@ -142,6 +142,9 @@ func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadClose
 	var str bytes.Buffer
 	var vf string
 
+	// FFmpeg needs to be able to seek in the file for some video formats (mkv)
+	// So we create a copy in the filesystem.
+	// TODO: Use the existing FileCache
 	f, err := os.Create("/tmp/videos/" + path)
 	if err != nil {
 		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
@@ -163,9 +166,11 @@ func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadClose
 		return nil, err
 	}
 
-	if duration < 20 {
+	if duration > 20 {
+		// Focus only on I-Frames to avoid costly rendering of video
 		vf = "select='eq(pict_type,I)',scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)'"
 	} else {
+		// Small videos do not have enough I-frames.
 		vf = "scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)'"
 	}
 
