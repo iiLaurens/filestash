@@ -144,8 +144,9 @@ func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadClose
 		return nil, err
 	}
 
+	img_count  := 0
 	for i := 1; i <= n_snapshots; i++ {
-		tmp_img_i := fmt.Sprintf(tmp_img, i)
+		tmp_img_i := fmt.Sprintf(tmp_img, img_count)
 
 		cmd := exec.Command("ffmpeg",
 		"-ss", strconv.FormatFloat((float64(i) - 0.5) * duration / float64(n_snapshots), 'g', 6, 64),
@@ -162,6 +163,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadClose
 			Log.Error("plg_video_thumbnail::ffmpeg::make_img:: %s <%s>", err.Error(), path)
 			os.Remove(tmp_img_i)
 		} else {
+			img_count += 1
 			defer os.Remove(tmp_img_i)
 		}
 	}
