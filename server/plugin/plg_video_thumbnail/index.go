@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os/exec"
 	"os"
-	"net/url"
 	"strings"
 	"strconv"
 	"golang.org/x/sync/semaphore"
@@ -42,7 +41,7 @@ func (this thumbnailBuilder) Generate(reader io.ReadCloser, ctx *App, res *http.
 
 func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
 	query := req.URL.Query()
-	path := url.QueryEscape(query.Get("path"))
+	path := strings.ReplaceAll(query.Get("path"), "/", "_")
 
 	h := (*res).Header()
 
