@@ -88,15 +88,12 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 	}
 	
 	cmd := exec.Command("ffmpeg",
-		"-itsscale", strconv.FormatFloat(math.Min(5.0/duration, 1), 'g', 6, 64),
-		"-f", ext,
-		"-i", f.Name(),
-		"-vf", "scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)',fps=2",
+		"-framerate", "2",
+		"-i", tmp_img,
 		"-f", "webp",
 		"-lossless", "0",
 		"-compression_level", "6",
 		"-loop", "0",
-		"-an",
 		"-preset", "picture",
 		"-vcodec", "libwebp",
 		tmp_out)
@@ -110,7 +107,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 		return nil, err
 	} else {
 		data, _ := os.ReadFile(tmp_out)
-		os.Remove(tmp_out)
+		// os.Remove(tmp_out)
 		return NewReadCloserFromBytes(data), nil
 	}
 }
