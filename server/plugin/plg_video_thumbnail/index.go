@@ -22,6 +22,11 @@ func init() {
 		Log.Error("plg_video_thumbnail::init %s", err.Error())
 	}
 	Hooks.Register.Thumbnailer("video/mp4", thumbnailBuilder{thumbnailMp4})
+	Hooks.Register.Thumbnailer("video/mov", thumbnailBuilder{thumbnailMp4})
+	Hooks.Register.Thumbnailer("video/mkv", thumbnailBuilder{thumbnailMp4})
+	Hooks.Register.Thumbnailer("video/mpeg", thumbnailBuilder{thumbnailMp4})
+	Hooks.Register.Thumbnailer("video/mpg", thumbnailBuilder{thumbnailMp4})
+	Hooks.Register.Thumbnailer("video/avi", thumbnailBuilder{thumbnailMp4})
 }
 
 type thumbnailBuilder struct {
@@ -33,8 +38,11 @@ func (this thumbnailBuilder) Generate(reader io.ReadCloser, ctx *App, res *http.
 }
 
 func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
+	query := req.URL.Query()
+	path := query.Get("path")
+
 	h := (*res).Header()
-	r, err := generateThumbnailFromVideo(reader, "mp4")
+	r, err := generateThumbnailFromVideo(reader, path)
 	if err != nil {
 		h.Set("Content-Type", "image/png")
 		return NewReadCloserFromBytes(placeholder), nil
@@ -44,10 +52,10 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 	return r, nil
 }
 
-func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser, error) {
+func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadCloser, error) {
 	var str bytes.Buffer
 
-	f, err := os.CreateTemp("/tmp/videos/", "vid_*")
+	f, err := os.Create("/tmp/videos/" + path)
 	if err != nil {
 		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
 		return nil, err
@@ -71,7 +79,6 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 	for i := 1; i <= 10; i++ {
 		cmd := exec.Command("ffmpeg",
 		"-ss", strconv.FormatFloat((float64(i) - 0.5) * duration / 10, 'g', 6, 64),
-		"-f", ext,
 		"-i", f.Name(),
 		"-vf", "select='eq(pict_type,I)',scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)'",
 		"-vframes", "1",
@@ -82,8 +89,8 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 
 		cmd.Stderr = &str
 		if err := cmd.Run(); err != nil {
-			Log.Debug("plg_video_thumbnail::ffmpeg::stderr %s", str.String())
-			Log.Error("plg_video_thumbnail::ffmpeg::run %s", err.Error())
+			Log.Debug("plg_video_thumbnail::ffmpeg::make_img::stderr %s", str.String())
+			Log.Error("plg_video_thumbnail::ffmpeg::make_img:: %s <%s>", err.Error(), path)
 			return nil, err
 		}
 	}
