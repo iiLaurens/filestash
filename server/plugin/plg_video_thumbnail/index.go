@@ -67,6 +67,26 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 	if err != nil {
 		return nil, err
 	}
+
+	for i := 1; i <= 10; i++ {
+		tmp_img := fmt.Sprintf("/tmp/videos/img_%02d.jpeg", i)
+		cmd := exec.Command("ffmpeg",
+		"-ss", strconv.FormatFloat((float64(i) - 0.5) * duration / 10, 'g', 6, 64),
+		"-f", ext,
+		"-i", f.Name(),
+		"-vf", "select='eq(pict_type,I)',scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)',fps=2",
+		"-vframes", "1",
+		tmp_img)
+
+		Log.Debug("plg_video_thumbnail:ffmpeg::cmd %s", cmd.String())
+
+		cmd.Stderr = &str
+		if err := cmd.Run(); err != nil {
+			Log.Debug("plg_video_thumbnail::ffmpeg::stderr %s", str.String())
+			Log.Error("plg_video_thumbnail::ffmpeg::run %s", err.Error())
+			return nil, err
+		} 
+	}
 	
 	cmd := exec.Command("ffmpeg",
 		"-itsscale", strconv.FormatFloat(math.Min(5.0/duration, 1), 'g', 6, 64),
