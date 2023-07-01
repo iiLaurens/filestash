@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 	"strconv"
-	"math"
 	. "github.com/mickael-kerjean/filestash/server/common"
 )
 
