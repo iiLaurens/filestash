@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os/exec"
 	"os"
+	"net/url"
 	"strings"
 	"strconv"
 	"golang.org/x/sync/semaphore"
@@ -41,7 +42,7 @@ func (this thumbnailBuilder) Generate(reader io.ReadCloser, ctx *App, res *http.
 
 func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
 	query := req.URL.Query()
-	path := query.Get("path")
+	path := url.QueryEscape(query.Get("path"))
 
 	h := (*res).Header()
 
@@ -63,7 +64,7 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadCloser, error) {
 	var str bytes.Buffer
 
-	f, err := os.Create("/tmp/videos/" + path)
+	f, err := os.Create("/tmp/videos" + path)
 	if err != nil {
 		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
 		return nil, err
