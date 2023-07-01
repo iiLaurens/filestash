@@ -16,13 +16,41 @@ import (
 
 //go:embed dist/placeholder.png
 var placeholder []byte
-var sem = semaphore.NewWeighted(10)
+var sem semaphore.Weighted
 
 func init() {
+	ffmpegIsInstalled := false
+	ffprobeIsInstalled := false
+	if _, err := exec.LookPath("ffmpeg"); err == nil {
+		ffmpegIsInstalled = true
+	}
+	if _, err := exec.LookPath("ffprobe"); err == nil {
+		ffprobeIsInstalled = true
+	}
+
 	err := os.MkdirAll("/tmp/videos/", os.ModePerm)
 	if err != nil {
 		Log.Error("plg_video_thumbnail::init %s", err.Error())
 	}
+
+	n_workers := Config.Get("features.video.thumbnail_workers").Schema(func(f *FormElement) *FormElement {
+		if f == nil {
+			f = &FormElement{}
+		}
+		f.Name = "thumbnail_workers"
+		f.Type = "number"
+		f.Default = 5
+		f.Target = []string{}
+		f.Description = "Max number of workers that will simultaneously produce thumbnails for video files"
+        f.Placeholder = "Default: 5"
+		if !ffmpegIsInstalled || !ffprobeIsInstalled {
+			f.Default = 5
+		}
+		return f
+	}).Int()
+
+	sem = *semaphore.NewWeighted(int64(n_workers))
+
 	Hooks.Register.Thumbnailer("video/mp4", thumbnailBuilder{thumbnailMp4})
 	Hooks.Register.Thumbnailer("video/mov", thumbnailBuilder{thumbnailMp4})
 	Hooks.Register.Thumbnailer("video/mkv", thumbnailBuilder{thumbnailMp4})
@@ -46,8 +74,6 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 	h := (*res).Header()
 
 	sem.Acquire(ctx.Context, 1)
-	Log.Debug("Acquired lock")
-	defer Log.Debug("Released lock")
 	defer sem.Release(1)
 
 	r, err := generateThumbnailFromVideo(reader, path)
