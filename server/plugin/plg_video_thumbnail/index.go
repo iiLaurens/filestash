@@ -17,6 +17,8 @@ import (
 //go:embed dist/placeholder.png
 var placeholder []byte
 var sem semaphore.Weighted
+var n_snapshots int
+var fps string
 
 func init() {
 	ffmpegIsInstalled := false
@@ -48,6 +50,38 @@ func init() {
 		}
 		return f
 	}).Int()
+
+	n_snapshots = Config.Get("features.video.thumbnail_n_snapshots").Schema(func(f *FormElement) *FormElement {
+		if f == nil {
+			f = &FormElement{}
+		}
+		f.Name = "thumbnail_n_snapshots"
+		f.Type = "number"
+		f.Default = 10
+		f.Target = []string{}
+		f.Description = "Maximum number of snapshots to show in a video thumbnail"
+        f.Placeholder = "Default: 10"
+		if !ffmpegIsInstalled || !ffprobeIsInstalled {
+			f.Default = 10
+		}
+		return f
+	}).Int()
+
+	fps = Config.Get("features.video.thumbnail_fps").Schema(func(f *FormElement) *FormElement {
+		if f == nil {
+			f = &FormElement{}
+		}
+		f.Name = "thumbnail_fps"
+		f.Type = "string"
+		f.Default = "3/2"
+		f.Target = []string{}
+		f.Description = "Number of snapshots to show per second (fractions are allowed, e.g. 1/2 or 3/2)"
+        f.Placeholder = "Default: 3/2"
+		if !ffmpegIsInstalled || !ffprobeIsInstalled {
+			f.Default = "3/2"
+		}
+		return f
+	}).String()
 
 	sem = *semaphore.NewWeighted(int64(n_workers))
 
@@ -110,11 +144,11 @@ func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadClose
 		return nil, err
 	}
 
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= n_snapshots; i++ {
 		tmp_img_i := fmt.Sprintf(tmp_img, i)
 
 		cmd := exec.Command("ffmpeg",
-		"-ss", strconv.FormatFloat((float64(i) - 0.5) * duration / 10, 'g', 6, 64),
+		"-ss", strconv.FormatFloat((float64(i) - 0.5) * duration / float64(n_snapshots), 'g', 6, 64),
 		"-i", f.Name(),
 		"-vf", "select='eq(pict_type,I)',scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)'",
 		"-vframes", "1",
@@ -133,7 +167,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadClose
 	}
 	
 	cmd := exec.Command("ffmpeg",
-		"-framerate", "2",
+		"-framerate", fps,
 		"-i", tmp_img,
 		"-f", "webp",
 		"-lossless", "0",
