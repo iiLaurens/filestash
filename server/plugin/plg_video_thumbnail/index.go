@@ -53,6 +53,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 		return nil, err
 	}
 	defer os.Remove(f.Name())
+	
 	tmp_out := f.Name() + ".webp"
 	tmp_img := f.Name() + "_%02d.jpeg"
 
@@ -75,6 +76,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 		"-vf", "select='eq(pict_type,I)',scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)'",
 		"-vframes", "1",
 		fmt.Sprintf(tmp_img, i))
+		defer os.Remove(fmt.Sprintf(tmp_img, i))
 
 		Log.Debug("plg_video_thumbnail:ffmpeg::make_img %s", cmd.String())
 
@@ -83,7 +85,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 			Log.Debug("plg_video_thumbnail::ffmpeg::stderr %s", str.String())
 			Log.Error("plg_video_thumbnail::ffmpeg::run %s", err.Error())
 			return nil, err
-		} 
+		}
 	}
 	
 	cmd := exec.Command("ffmpeg",
@@ -96,6 +98,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 		"-preset", "picture",
 		"-vcodec", "libwebp",
 		tmp_out)
+	defer os.Remove(tmp_out)
 
 	Log.Debug("plg_video_thumbnail:ffmpeg::cmd %s", cmd.String())
 
@@ -106,7 +109,6 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 		return nil, err
 	} else {
 		data, _ := os.ReadFile(tmp_out)
-		// os.Remove(tmp_out)
 		return NewReadCloserFromBytes(data), nil
 	}
 }
