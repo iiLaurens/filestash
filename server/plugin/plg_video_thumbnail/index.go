@@ -77,7 +77,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, ext string) (io.ReadCloser
 		"-vframes", "1",
 		fmt.Sprintf(tmp_img, i))
 
-		Log.Debug("plg_video_thumbnail:ffmpeg::cmd %s", cmd.String())
+		Log.Debug("plg_video_thumbnail:ffmpeg::make_img %s", cmd.String())
 
 		cmd.Stderr = &str
 		if err := cmd.Run(); err != nil {
