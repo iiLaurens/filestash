@@ -10,11 +10,13 @@ import (
 	"os"
 	"strings"
 	"strconv"
+	"golang.org/x/sync/semaphore"
 	. "github.com/mickael-kerjean/filestash/server/common"
 )
 
 //go:embed dist/placeholder.png
 var placeholder []byte
+var sem = semaphore.NewWeighted(10)
 
 func init() {
 	err := os.MkdirAll("/tmp/videos/", os.ModePerm)
@@ -42,6 +44,12 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 	path := query.Get("path")
 
 	h := (*res).Header()
+
+	sem.Acquire(ctx.Context, 1)
+	Log.Debug("Acquired lock")
+	defer Log.Debug("Released lock")
+	defer sem.Release(1)
+
 	r, err := generateThumbnailFromVideo(reader, path)
 	if err != nil {
 		h.Set("Content-Type", "image/png")
