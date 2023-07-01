@@ -19,6 +19,7 @@ var placeholder []byte
 var sem semaphore.Weighted
 var n_snapshots int
 var fps string
+var cache_duration int64
 
 func init() {
 	ffmpegIsInstalled := false
@@ -35,11 +36,11 @@ func init() {
 		Log.Error("plg_video_thumbnail::init %s", err.Error())
 	}
 
-	n_workers := Config.Get("features.video.thumbnail_workers").Schema(func(f *FormElement) *FormElement {
+	n_workers := Config.Get("features.video_thumbnail.num_workers").Schema(func(f *FormElement) *FormElement {
 		if f == nil {
 			f = &FormElement{}
 		}
-		f.Name = "thumbnail_workers"
+		f.Name = "num_workers"
 		f.Type = "number"
 		f.Default = 5
 		f.Target = []string{}
@@ -51,11 +52,11 @@ func init() {
 		return f
 	}).Int()
 
-	n_snapshots = Config.Get("features.video.thumbnail_n_snapshots").Schema(func(f *FormElement) *FormElement {
+	n_snapshots = Config.Get("features.video_thumbnail.num_snapshots").Schema(func(f *FormElement) *FormElement {
 		if f == nil {
 			f = &FormElement{}
 		}
-		f.Name = "thumbnail_n_snapshots"
+		f.Name = "num_snapshots"
 		f.Type = "number"
 		f.Default = 10
 		f.Target = []string{}
@@ -67,11 +68,11 @@ func init() {
 		return f
 	}).Int()
 
-	fps = Config.Get("features.video.thumbnail_fps").Schema(func(f *FormElement) *FormElement {
+	fps = Config.Get("features.video_thumbnail.fps").Schema(func(f *FormElement) *FormElement {
 		if f == nil {
 			f = &FormElement{}
 		}
-		f.Name = "thumbnail_fps"
+		f.Name = "fps"
 		f.Type = "string"
 		f.Default = "3/2"
 		f.Target = []string{}
@@ -82,6 +83,22 @@ func init() {
 		}
 		return f
 	}).String()
+
+	cache_duration = int64(Config.Get("features.video_thumbnail.cache_duration").Schema(func(f *FormElement) *FormElement {
+		if f == nil {
+			f = &FormElement{}
+		}
+		f.Name = "cache_duration"
+		f.Type = "number"
+		f.Default = 60 * 60 * 24 * 90
+		f.Target = []string{}
+		f.Description = "How long should the browser (and possibly reverse proxy) cache generated thumbnails"
+        f.Placeholder = "Default: 7776000 (90 days)"
+		if !ffmpegIsInstalled || !ffprobeIsInstalled {
+			f.Default = "43200"
+		}
+		return f
+	}).Int())
 
 	sem = *semaphore.NewWeighted(int64(n_workers))
 
@@ -113,10 +130,11 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 	r, err := generateThumbnailFromVideo(reader, path)
 	if err != nil {
 		h.Set("Content-Type", "image/png")
+		h.Set("Cache-Control", fmt.Sprintf("max-age=%d", 60*60))
 		return NewReadCloserFromBytes(placeholder), nil
 	}
 	h.Set("Content-Type", "image/webp")
-	h.Set("Cache-Control", fmt.Sprintf("max-age=%d", 3600*12))
+	h.Set("Cache-Control", fmt.Sprintf("max-age=%d", cache_duration))
 	return r, nil
 }
 
