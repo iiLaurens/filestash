@@ -140,6 +140,7 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 
 func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadCloser, error) {
 	var str bytes.Buffer
+	var vf string
 
 	f, err := os.Create("/tmp/videos/" + path)
 	if err != nil {
@@ -162,6 +163,12 @@ func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadClose
 		return nil, err
 	}
 
+	if duration < 20 {
+		vf = "select='eq(pict_type,I)',scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)'"
+	} else {
+		vf = "scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)'"
+	}
+
 	img_count  := 0
 	for i := 1; i <= n_snapshots; i++ {
 		tmp_img_i := fmt.Sprintf(tmp_img, img_count)
@@ -169,7 +176,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadClose
 		cmd := exec.Command("ffmpeg",
 		"-ss", strconv.FormatFloat((float64(i) - 0.5) * duration / float64(n_snapshots), 'g', 6, 64),
 		"-i", f.Name(),
-		"-vf", "select='eq(pict_type,I)',scale='if(gt(a,250/250),-1,250)':'if(gt(a,250/250),250,-1)'",
+		"-vf", vf,
 		"-vframes", "1",
 		tmp_img_i)
 
