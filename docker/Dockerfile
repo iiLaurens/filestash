@@ -63,7 +63,7 @@ RUN apt-get update > /dev/null && \
     
 RUN useradd filestash && \
     chown -R filestash:filestash /app/ && \
-    chmod -R 766 /app/ && \
+    chmod -R 777 /app/ && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /tmp/*
 
