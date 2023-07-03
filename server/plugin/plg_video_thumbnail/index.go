@@ -11,7 +11,6 @@ import (
 	"strings"
 	"strconv"
 	"golang.org/x/sync/semaphore"
-	"encoding/json"
 	. "github.com/mickael-kerjean/filestash/server/common"
 )
 
@@ -154,18 +153,15 @@ func (this thumbnailBuilder) Generate(reader io.ReadCloser, ctx *App, res *http.
 }
 
 func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
-	b, _ := json.Marshal(ctx.Session)
-	Log.Info(string(b))
-
 	query := req.URL.Query()
-	path := strings.ReplaceAll(query.Get("path"), "/", "_")
+	path := query.Get("path")
 
 	h := (*res).Header()
 
 	sem.Acquire(ctx.Context, 1)
 	defer sem.Release(1)
 
-	r, err := generateThumbnailFromVideo(reader, path)
+	r, err := generateThumbnailFromVideo(ctx, reader, path)
 	if err != nil {
 		h.Set("Content-Type", "image/png")
 		h.Set("Cache-Control", fmt.Sprintf("max-age=%d", 60*60))
@@ -176,30 +172,40 @@ func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req 
 	return r, nil
 }
 
-func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadCloser, error) {
+func generateThumbnailFromVideo(ctx *App, reader io.ReadCloser, path string) (io.ReadCloser, error) {
 	var str bytes.Buffer
 	var vf string
+	var tmp_in string
 
-	// FFmpeg needs to be able to seek in the file for some video formats (mkv)
-	// So we create a copy in the filesystem.
-	// TODO: Use the existing FileCache
-	f, err := os.Create(GetAbsolutePath(VideoCachePath, path))
-	if err != nil {
-		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
-		return nil, err
+	cacheName := "vid_" + GenerateID(ctx) + "_" + QuickHash(path, 10) + ".dat"
+
+	if ctx.Session["Type"] != "local" {
+		// FFmpeg needs to be able to seek in the file for some video formats (mkv)
+		// So we create a copy in the filesystem.
+
+		f, err := os.Create(GetAbsolutePath(VideoCachePath, cacheName))
+		if err != nil {
+			Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
+			return nil, err
+		}		
+		defer os.Remove(f.Name())
+
+		_, err = io.Copy(f, reader)
+		if err != nil {
+			Log.Error("plg_video_thumbnail::tmpfile::copy %s", err.Error())
+			return nil, err
+		}
+
+		tmp_in = f.Name()
+	} else {
+		// Avoid copy action of potentially large video file by using direct path
+		tmp_in = GetAbsolutePath(ctx.Session["path"], path)
 	}
-	defer os.Remove(f.Name())
-	
-	tmp_out := f.Name() + ".webp"
-	tmp_img := f.Name() + "_%02d.jpeg"
 
-	_, err = io.Copy(f, reader)
-	if err != nil {
-		Log.Error("plg_video_thumbnail::tmpfile::copy %s", err.Error())
-		return nil, err
-	}
+	tmp_out := GetAbsolutePath(VideoCachePath, cacheName) + ".webp"
+	tmp_img := GetAbsolutePath(VideoCachePath, cacheName) + "_%02d.jpeg"
 
-	duration, err := getVideoDetails(f.Name())
+	duration, err := getVideoDetails(tmp_in)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +224,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadClose
 
 		cmd := exec.Command("ffmpeg",
 		"-ss", strconv.FormatFloat((float64(i) - 0.5) * duration / float64(n_snapshots), 'g', 6, 64),
-		"-i", f.Name(),
+		"-i", tmp_in,
 		"-vf", vf,
 		"-vframes", "1",
 		tmp_img_i)
