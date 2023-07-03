@@ -11,6 +11,7 @@ import (
 	"strings"
 	"strconv"
 	"golang.org/x/sync/semaphore"
+	"encoding/json"
 	. "github.com/mickael-kerjean/filestash/server/common"
 )
 
@@ -153,6 +154,9 @@ func (this thumbnailBuilder) Generate(reader io.ReadCloser, ctx *App, res *http.
 }
 
 func thumbnailMp4(reader io.ReadCloser, ctx *App, res *http.ResponseWriter, req *http.Request) (io.ReadCloser, error) {
+	b, _ := json.Marshal(ctx.Session)
+	Log.Info(string(b))
+
 	query := req.URL.Query()
 	path := strings.ReplaceAll(query.Get("path"), "/", "_")
 
