@@ -21,6 +21,10 @@ var n_snapshots int
 var fps string
 var cache_duration int64
 
+const (
+	VideoCachePath     = "data/cache/video/"
+)
+
 func init() {
 	ffmpegIsInstalled := false
 	ffprobeIsInstalled := false
@@ -31,10 +35,9 @@ func init() {
 		ffprobeIsInstalled = true
 	}
 
-	err := os.MkdirAll("/tmp/videos/", os.ModePerm)
-	if err != nil {
-		Log.Error("plg_video_thumbnail::init %s", err.Error())
-	}
+	cachePath := GetAbsolutePath(VideoCachePath)
+	os.RemoveAll(cachePath)
+	os.MkdirAll(cachePath, os.ModePerm)
 
 	plugin_enable := func() bool {
 		return Config.Get("features.video_thumbnails.enable_video_thumbnails").Schema(func(f *FormElement) *FormElement {
@@ -176,7 +179,7 @@ func generateThumbnailFromVideo(reader io.ReadCloser, path string) (io.ReadClose
 	// FFmpeg needs to be able to seek in the file for some video formats (mkv)
 	// So we create a copy in the filesystem.
 	// TODO: Use the existing FileCache
-	f, err := os.Create("/tmp/videos/" + path)
+	f, err := os.Create(GetAbsolutePath(VideoCachePath, path))
 	if err != nil {
 		Log.Error("plg_video_thumbnail::tmpfile::create %s", err.Error())
 		return nil, err
