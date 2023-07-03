@@ -36,11 +36,43 @@ func init() {
 		Log.Error("plg_video_thumbnail::init %s", err.Error())
 	}
 
-	n_workers := Config.Get("features.video_thumbnail.num_workers").Schema(func(f *FormElement) *FormElement {
+	plugin_enable := func() bool {
+		return Config.Get("features.video_thumbnails.enable_video_thumbnails").Schema(func(f *FormElement) *FormElement {
+			if f == nil {
+				f = &FormElement{}
+			}
+			f.Name = "enable_video_thumbnails"
+			f.Type = "enable"
+			f.Target = []string{
+				"vid_thumbnail_num_workers",
+				"vid_thumbnail_num_snapshots",
+				"vid_thumbnail_fps",
+				"vid_thumbnail_cache_duration",
+			}
+			f.Description = "Enable/Disable animated video thumbnail generation."
+			f.Default = true
+			if !ffmpegIsInstalled || !ffprobeIsInstalled {
+				f.Default = false
+			}
+			return f
+		}).Bool()
+	}
+
+	if !plugin_enable() {
+		return
+	} else if !ffmpegIsInstalled {
+		Log.Warning("[plugin video thumbnailer] ffmpeg needs to be installed")
+		return
+	} else if !ffprobeIsInstalled {
+		Log.Warning("[plugin video thumbnailer] ffprobe needs to be installed")
+		return
+	}
+
+	n_workers := Config.Get("features.video_thumbnails.num_workers").Schema(func(f *FormElement) *FormElement {
 		if f == nil {
 			f = &FormElement{}
 		}
-		f.Name = "num_workers"
+		f.Name = "vid_thumbnail_num_workers"
 		f.Type = "number"
 		f.Default = 5
 		f.Target = []string{}
@@ -52,11 +84,11 @@ func init() {
 		return f
 	}).Int()
 
-	n_snapshots = Config.Get("features.video_thumbnail.num_snapshots").Schema(func(f *FormElement) *FormElement {
+	n_snapshots = Config.Get("features.video_thumbnails.num_snapshots").Schema(func(f *FormElement) *FormElement {
 		if f == nil {
 			f = &FormElement{}
 		}
-		f.Name = "num_snapshots"
+		f.Name = "vid_thumbnail_num_snapshots"
 		f.Type = "number"
 		f.Default = 10
 		f.Target = []string{}
@@ -68,11 +100,11 @@ func init() {
 		return f
 	}).Int()
 
-	fps = Config.Get("features.video_thumbnail.fps").Schema(func(f *FormElement) *FormElement {
+	fps = Config.Get("features.video_thumbnails.fps").Schema(func(f *FormElement) *FormElement {
 		if f == nil {
 			f = &FormElement{}
 		}
-		f.Name = "fps"
+		f.Name = "vid_thumbnail_fps"
 		f.Type = "string"
 		f.Default = "3/2"
 		f.Target = []string{}
@@ -84,11 +116,11 @@ func init() {
 		return f
 	}).String()
 
-	cache_duration = int64(Config.Get("features.video_thumbnail.cache_duration").Schema(func(f *FormElement) *FormElement {
+	cache_duration = int64(Config.Get("features.video_thumbnails.cache_duration").Schema(func(f *FormElement) *FormElement {
 		if f == nil {
 			f = &FormElement{}
 		}
-		f.Name = "cache_duration"
+		f.Name = "vid_thumbnail_cache_duration"
 		f.Type = "number"
 		f.Default = 60 * 60 * 24 * 90
 		f.Target = []string{}
@@ -103,11 +135,10 @@ func init() {
 	sem = *semaphore.NewWeighted(int64(n_workers))
 
 	Hooks.Register.Thumbnailer("video/mp4", thumbnailBuilder{thumbnailMp4})
-	Hooks.Register.Thumbnailer("video/mov", thumbnailBuilder{thumbnailMp4})
-	Hooks.Register.Thumbnailer("video/mkv", thumbnailBuilder{thumbnailMp4})
+	Hooks.Register.Thumbnailer("video/x-matroska", thumbnailBuilder{thumbnailMp4})
 	Hooks.Register.Thumbnailer("video/mpeg", thumbnailBuilder{thumbnailMp4})
-	Hooks.Register.Thumbnailer("video/mpg", thumbnailBuilder{thumbnailMp4})
-	Hooks.Register.Thumbnailer("video/avi", thumbnailBuilder{thumbnailMp4})
+	Hooks.Register.Thumbnailer("video/x-msvide", thumbnailBuilder{thumbnailMp4})
+	Hooks.Register.Thumbnailer("video/x-flv", thumbnailBuilder{thumbnailMp4})
 }
 
 type thumbnailBuilder struct {
